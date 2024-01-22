@@ -24,6 +24,7 @@ dev:$(VIRTUALENV)/bin/python  ## Install this for development
 	@$(PYTHON) -m pip install ruff
 	@$(PYTHON) -m pip install pytest
 	@$(PYTHON) -m pip install coverage
+	@$(PYTHON) -m pip install -r requirements.txt
 
 test:  ## Run all tests
 	@pytest

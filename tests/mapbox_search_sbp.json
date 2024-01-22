@@ -1,0 +1,233 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "dXJuOm1ieGFkcjpjOGVjZjc4Ny0zMmFlLTQ0NGEtYTM5YS00ZDJkYjUxY2VjYjA",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          4.7508125,
+          52.2749718
+        ]
+      },
+      "properties": {
+        "mapbox_id": "dXJuOm1ieGFkcjpjOGVjZjc4Ny0zMmFlLTQ0NGEtYTM5YS00ZDJkYjUxY2VjYjA",
+        "feature_type": "address",
+        "name": "Boeingavenue 271",
+        "coordinates": {
+          "longitude": 4.7508125,
+          "latitude": 52.2749718,
+          "accuracy": "rooftop"
+        },
+        "place_formatted": "1119 PD Schiphol-Rijk, Netherlands",
+        "context": {
+          "address": {
+            "mapbox_id": "dXJuOm1ieGFkcjpjOGVjZjc4Ny0zMmFlLTQ0NGEtYTM5YS00ZDJkYjUxY2VjYjA",
+            "address_number": "271",
+            "street_name": "Boeingavenue",
+            "name": "Boeingavenue 271"
+          },
+          "street": {
+            "mapbox_id": "dXJuOm1ieGFkcjpjOGVjZjc4Ny0zMmFlLTQ0NGEtYTM5YS00ZDJkYjUxY2VjYjA",
+            "name": "Boeingavenue"
+          },
+          "postcode": {
+            "mapbox_id": "postcode.3254979177849816",
+            "name": "1119 PD"
+          },
+          "place": {
+            "mapbox_id": "dXJuOm1ieHBsYzo0cWlv",
+            "name": "Schiphol-Rijk",
+            "wikidata_id": "Q1614044"
+          },
+          "region": {
+            "mapbox_id": "dXJuOm1ieHBsYzpoS2c",
+            "name": "North Holland",
+            "wikidata_id": "Q701",
+            "region_code": "NH",
+            "region_code_full": "NL-NH"
+          },
+          "country": {
+            "mapbox_id": "dXJuOm1ieHBsYzpJcWc",
+            "name": "Netherlands",
+            "wikidata_id": "Q55",
+            "country_code": "NL",
+            "country_code_alpha_3": "NLD"
+          }
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "postcode.3254979177849816",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          4.7509214,
+          52.27648
+        ]
+      },
+      "properties": {
+        "mapbox_id": "postcode.3254979177849816",
+        "feature_type": "postcode",
+        "name": "1119 PD",
+        "coordinates": {
+          "longitude": 4.7509214,
+          "latitude": 52.27648
+        },
+        "place_formatted": "Schiphol-Rijk, North Holland, Netherlands",
+        "context": {
+          "place": {
+            "mapbox_id": "dXJuOm1ieHBsYzo0cWlv",
+            "name": "Schiphol-Rijk",
+            "wikidata_id": "Q1614044"
+          },
+          "region": {
+            "mapbox_id": "dXJuOm1ieHBsYzpoS2c",
+            "name": "North Holland",
+            "wikidata_id": "Q701",
+            "region_code": "NH",
+            "region_code_full": "NL-NH"
+          },
+          "country": {
+            "mapbox_id": "dXJuOm1ieHBsYzpJcWc",
+            "name": "Netherlands",
+            "wikidata_id": "Q55",
+            "country_code": "NL",
+            "country_code_alpha_3": "NLD"
+          },
+          "postcode": {
+            "mapbox_id": "postcode.3254979177849816",
+            "name": "1119 PD"
+          }
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "dXJuOm1ieHBsYzo0cWlv",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          4.752524,
+          52.278434
+        ]
+      },
+      "properties": {
+        "mapbox_id": "dXJuOm1ieHBsYzo0cWlv",
+        "feature_type": "place",
+        "name": "Schiphol-Rijk",
+        "coordinates": {
+          "longitude": 4.752524,
+          "latitude": 52.278434
+        },
+        "place_formatted": "North Holland, Netherlands",
+        "bbox": [
+          4.742144,
+          52.274488,
+          4.774668,
+          52.291737
+        ],
+        "context": {
+          "region": {
+            "mapbox_id": "dXJuOm1ieHBsYzpoS2c",
+            "name": "North Holland",
+            "wikidata_id": "Q701",
+            "region_code": "NH",
+            "region_code_full": "NL-NH"
+          },
+          "country": {
+            "mapbox_id": "dXJuOm1ieHBsYzpJcWc",
+            "name": "Netherlands",
+            "wikidata_id": "Q55",
+            "country_code": "NL",
+            "country_code_alpha_3": "NLD"
+          },
+          "place": {
+            "mapbox_id": "dXJuOm1ieHBsYzo0cWlv",
+            "name": "Schiphol-Rijk",
+            "wikidata_id": "Q1614044"
+          }
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "dXJuOm1ieHBsYzpoS2c",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          4.6388048,
+          52.3885317
+        ]
+      },
+      "properties": {
+        "mapbox_id": "dXJuOm1ieHBsYzpoS2c",
+        "feature_type": "region",
+        "name": "North Holland",
+        "coordinates": {
+          "longitude": 4.6388048,
+          "latitude": 52.3885317
+        },
+        "place_formatted": "Netherlands",
+        "bbox": [
+          4.408624,
+          52.165929,
+          5.4492187,
+          53.2520688
+        ],
+        "context": {
+          "country": {
+            "mapbox_id": "dXJuOm1ieHBsYzpJcWc",
+            "name": "Netherlands",
+            "wikidata_id": "Q55",
+            "country_code": "NL",
+            "country_code_alpha_3": "NLD"
+          },
+          "region": {
+            "mapbox_id": "dXJuOm1ieHBsYzpoS2c",
+            "name": "North Holland",
+            "wikidata_id": "Q701"
+          }
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "dXJuOm1ieHBsYzpJcWc",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          5.61349061168593,
+          51.9724664894952
+        ]
+      },
+      "properties": {
+        "mapbox_id": "dXJuOm1ieHBsYzpJcWc",
+        "feature_type": "country",
+        "name": "Netherlands",
+        "coordinates": {
+          "longitude": 5.61349061168593,
+          "latitude": 51.9724664894952
+        },
+        "bbox": [
+          3.3363182,
+          50.750367,
+          7.227499,
+          53.6392176
+        ],
+        "context": {
+          "country": {
+            "mapbox_id": "dXJuOm1ieHBsYzpJcWc",
+            "name": "Netherlands",
+            "country_code": "NL",
+            "country_code_alpha_3": "NLD",
+            "wikidata_id": "Q55"
+          }
+        }
+      }
+    }
+  ],
+  "attribution": "NOTICE: © 2024 Mapbox and its suppliers. All rights reserved. Use of this data is subject to the Mapbox Terms of Service (https://www.mapbox.com/about/maps/). This response and the information it contains may not be retained."
+}
