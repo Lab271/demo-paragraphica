@@ -1,0 +1,5 @@
+[tool.ruff]
+# E701 - multiple-statements-on-one-line-colon
+# E702 - multiple-statements-on-one-line-semicolon
+ignore = ["E701", "E702"]
+line-length = 120
