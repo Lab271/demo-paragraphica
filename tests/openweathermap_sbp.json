@@ -1,0 +1,43 @@
+{
+  "coord": {
+    "lon": 4.7508,
+    "lat": 52.275
+  },
+  "weather": [
+    {
+      "id": 801,
+      "main": "Clouds",
+      "description": "few clouds",
+      "icon": "02d"
+    }
+  ],
+  "base": "stations",
+  "main": {
+    "temp": 10.06,
+    "feels_like": 9.11,
+    "temp_min": 9.43,
+    "temp_max": 10.62,
+    "pressure": 1006,
+    "humidity": 76
+  },
+  "visibility": 10000,
+  "wind": {
+    "speed": 13.38,
+    "deg": 250
+  },
+  "clouds": {
+    "all": 20
+  },
+  "dt": 1705931946,
+  "sys": {
+    "type": 2,
+    "id": 47677,
+    "country": "NL",
+    "sunrise": 1705909003,
+    "sunset": 1705939662
+  },
+  "timezone": 3600,
+  "id": 2760134,
+  "name": "Aalsmeer",
+  "cod": 200
+}
