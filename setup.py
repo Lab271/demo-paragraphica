@@ -6,17 +6,17 @@ with open("README.md", "r") as f:
     long_description = f.read()
 
 setup(
-    name='hack-python',
-    version="0.0.8",
-    description='hack assembler/disassembler in python',
+    name='paragraphica',
+    version="0.0",
+    description='The SBP implementation of Paragraphica',
     long_description=long_description,
     license='MIT',
-    author='Ilja Heitlager',
-    author_email='iheitlager@schubergphilis.com',
-    maintainer='Ilja Heitlager',
-    maintainer_email='iheitlager@schubergphilis.com',
+    author='Bjoern Karmann',
+    # author_email='',
+    maintainer='Marco Schreurs, Ilja Heitlager',
+    maintainer_email='mschreurs@schubergphilis.com, iheitlager@schubergphilis.com',
     keywords=["hack interpreter", "development-tools"],
-    url='https://github.com/schubergphilis/data-migrator',
+    url='https://github.com/lab271/paragraphica',
     packages=find_packages('src'),
     package_dir={'': 'src'},
     test_suite="tests",
@@ -24,8 +24,6 @@ setup(
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Environment :: Console",
-        "Topic :: Software Development :: Build Tools",
-        "Topic :: Utilities",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3.11",
@@ -33,9 +31,6 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Natural Language :: English"
     ],
-    install_requires=[
-        'gnureadline',
-        'getch'
-    ],
+    install_requires=[],
     zip_safe=True,
 )

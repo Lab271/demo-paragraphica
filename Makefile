@@ -2,6 +2,7 @@
 SHELL := /bin/bash
 
 VIRTUALENV = ./.para
+PACKAGE=paragraphica
 PYTHON = $(VIRTUALENV)/bin/python
 .PHONY: test lint coverage help
 
@@ -11,7 +12,7 @@ all: $(TARGETS)
 
 clean: ## Clean all build files
 	-@echo y | pip uninstall hack-python
-	@rm -rdf hack_python.egg*
+	@rm -rdf $(PACKAGE).egg*
 	@find . -name *.pyc -delete
 	@rm -rdf build dist
 	@rm -rdf $(VIRTUALENV)
@@ -45,7 +46,7 @@ count:
 
 freeze:  ## Freezes pip requirements
 	@echo "# Generated on `date`" >| requirements.txt
-	@$(PYTHON) -m pip freeze >> requirements.txt
+	@$(PYTHON) -m pip freeze | grep -v "$(PACKAGE)" >> requirements.txt
 
 help: ## Shows help screen
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' Makefile | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-16s\033[0m %s\n", $$1, $$2}'
