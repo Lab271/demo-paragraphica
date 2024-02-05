@@ -2,27 +2,17 @@ from gpiozero import RotaryEncoder, PWMLED, Button
 from gpiozero.tools import scaled_half
 from signal import pause
 
-def print_rot(n, r):
-    print("Rot {}: {:}".format(n, r.value))
-
 style = ["Photo", "Painting", "Monet", "SciFi", "Anime"]
 def print_style(r):
     print("Style: " + style[int((r.value+1)/2*4)-1])
-    # print("Style: {} {} {} {}".format(style[int((r.value+1)/2*4)-1], r.value, r.value+1, (r.value+1)/2*4))
 
 focal = ["0", "1", "3", "5", "10", "25", "50", "100", "inf"]
 def print_focal_length(r):
    print("Focal length: {}".format(focal[9-int((r.value+1)/2*8)-1]))
-#    print("Focal length: {}".format(r.value+1/2.0*8))
 
 
 def print_focus(r):
     print("Focus: {:3.1f}%".format((1-(r.value+1)/2)*100.0))
-
-def curry(f, n):
-    def curried(r):
-        return f(n, r)
-    return curried
 
 def print_but(col, but):
     print("{} Button pressed".format(col))
@@ -35,7 +25,6 @@ if __name__ == '__main__':
     but2 = Button(23)
     led = PWMLED(24)
     led.source = scaled_half(rot3.values)
-    #rot1.when_rotated = curry(print_rot, 1)
     rot1.when_rotated = print_style
     rot2.when_rotated = print_focal_length
     rot3.when_rotated = print_focus
