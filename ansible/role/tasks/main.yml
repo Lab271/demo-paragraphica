@@ -1,0 +1,37 @@
+- name: Ensures existance /opt/{{ project_root }}
+  ansible.builtin.file:
+    path: "/opt/{{ project_root }}"
+    state: directory
+    owner: "{{ user }}"
+    group: "{{ group }}"
+    mode: '0755'
+- name: Checkout code from github # noqa: latest
+# NB: in folder of provisioning user!
+  become: false
+  ansible.builtin.git:
+    repo: "{{ git_repo }}"
+    dest: "{{ project_root }}"
+    accept_hostkey: true
+- name: Set credentials
+  ansible.builtin.template:
+    src: vars.py.j2
+    dest: "/opt/{{ project_root }}/vars.py"
+    owner: "{{ user }}"
+    group: "{{ group }}"
+    mode: '0700'
+  tags: creds
+  vars:
+    MAPBOX_API: "{{ lookup('community.general.onepassword', 'Mapbox', field='paragraphica', vault='Labs') }}"
+    OPENWEATHERMAP_API: "{{ lookup('community.general.onepassword', 'Openweathermap', field='paragraphica', vault='Labs') }}"
+- name: Copy files to working folder
+  # this is taken from the checkout repo of provisioning user!
+  ansible.builtin.copy:
+    src: "{{ project_root }}/src/{{ item.file }}"
+    dest: "/opt/{{ project_root }}/{{ item.file }}"
+    owner: "{{ user }}"
+    group: "{{ group }}"
+    remote_src: true
+    mode: '0755'
+  loop:
+    - file: ./paragraphica.py
+  changed_when: true
