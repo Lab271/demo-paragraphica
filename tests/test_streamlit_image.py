@@ -21,13 +21,14 @@ class ImageModel:
         self.size="1024x1024"
         self.quality="standard"
 
-    def generate(self, prompt, model, image_style):
+    def generate(self, prompt, model, image_quality, image_style, gen_style):
         prompt += "Use {} as image style.".format(image_style)
         response = self.client.images.generate(
             model=model,
             prompt=prompt,
             size=self.size,
-            quality=self.quality,
+            style=gen_style,
+            quality=image_quality,
             response_format='b64_json',
             n=1,
         )
@@ -47,13 +48,10 @@ model = load_model()  # load our ChatModel once and then cache it
 
 with st.sidebar:
     image_model = st.selectbox("What chat model would you like to use?", ("dall-e-3", "dall-e-2"))
+    image_size = st.selectbox("Select size", ("256x256", "1012x1012"))
+    image_quality = st.selectbox("Select quality", ("standard", "hd"))
+    gen_style = st.selectbox("Select generation style", ("natural", "vivid"))
     image_style = st.selectbox("What style would you like to use?", ("realistic", "film noir", "painting", "manga"))
-    # temperature = st.slider("temperature", 0.0, 2.0, 0.1)
-    # top_p = st.slider("top_p", 0.0, 1.0, 0.9)
-    # max_new_tokens = st.number_input("max_new_tokens", 128, 4096, 512)
-    # system_prompt = st.text_area(
-    #     "system prompt", value=model.DEFAULT_SYSTEM_PROMPT, height=500
-    # )
 
 # Initialize chat history
 if "messages" not in st.session_state:
@@ -78,6 +76,8 @@ if prompt := st.chat_input("Ask me anything!"):
         answer = model.generate(
             user_prompt,
             image_style=image_style,
+            image_quality=image_quality,
+            gen_style=gen_style,
             model=image_model
         )
         st.image(answer[1], caption=answer[0])
