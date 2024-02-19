@@ -5,11 +5,6 @@ from base64 import b64decode
 
 # from ChatModel import *
 
-
-# streamlit run tests/test_streamlit.py
-
-st.title("Paragraphica Converser")
-
 class ImageModel:
     DEFAULT_SYSTEM_PROMPT = "You are a very skilled Python programmer. That uses decorators and generators a lot. You do not give answers in other programming languages."
     MODEL = "gpt-3.5-turbo"
@@ -44,41 +39,45 @@ def load_model():
     return model
 
 
-model = load_model()  # load our ChatModel once and then cache it
+# streamlit run tests/test_streamlit.py
+if __name__ == '__main__':
+    st.title("Paragraphica Converser")
 
-with st.sidebar:
-    image_model = st.selectbox("What chat model would you like to use?", ("dall-e-3", "dall-e-2"))
-    image_size = st.selectbox("Select size", ("256x256", "1012x1012"))
-    image_quality = st.selectbox("Select quality", ("standard", "hd"))
-    gen_style = st.selectbox("Select generation style", ("natural", "vivid"))
-    image_style = st.selectbox("What style would you like to use?", ("realistic", "film noir", "painting", "manga"))
+    model = load_model()  # load our ChatModel once and then cache it
 
-# Initialize chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+    with st.sidebar:
+        image_model = st.selectbox("What chat model would you like to use?", ("dall-e-3", "dall-e-2"))
+        image_size = st.selectbox("Select size", ("256x256", "1012x1012"))
+        image_quality = st.selectbox("Select quality", ("standard", "hd"))
+        gen_style = st.selectbox("Select generation style", ("natural", "vivid"))
+        image_style = st.selectbox("What style would you like to use?", ("realistic", "film noir", "painting", "manga"))
 
-# Display chat messages from history on app rerun
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+    # Initialize chat history
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
 
-# Accept user input
-if prompt := st.chat_input("Ask me anything!"):
-    # Add user message to chat history
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    # Display user message in chat message container
-    with st.chat_message("user"):
-        st.markdown(prompt)
+    # Display chat messages from history on app rerun
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
 
-    # Display assistant response in chat message container
-    with st.chat_message("assistant"):
-        user_prompt = st.session_state.messages[-1]["content"]
-        answer = model.generate(
-            user_prompt,
-            image_style=image_style,
-            image_quality=image_quality,
-            gen_style=gen_style,
-            model=image_model
-        )
-        st.image(answer[1], caption=answer[0])
-    st.session_state.messages.append({"role": "assistant", "content": answer})
+    # Accept user input
+    if prompt := st.chat_input("What shall I draw?"):
+        # Add user message to chat history
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        # Display user message in chat message container
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        # Display assistant response in chat message container
+        with st.chat_message("assistant"):
+            user_prompt = st.session_state.messages[-1]["content"]
+            answer = model.generate(
+                user_prompt,
+                image_style=image_style,
+                image_quality=image_quality,
+                gen_style=gen_style,
+                model=image_model
+            )
+            st.image(answer[1], caption=answer[0])
+        st.session_state.messages.append({"role": "assistant", "content": answer})
