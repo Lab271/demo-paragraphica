@@ -1,10 +1,28 @@
 from paragraphica.mapbox import call_mapbox
 from paragraphica.openweathermap import call_openweathermap
 import streamlit as st
+import os
 from PIL import Image
 from base64 import b64decode
 import pprint
 
+
+mapbox_token = os.environ['PARA_MAPBOX_API']
+
+map_html = f"""
+<script id="search-js" defer src="https://api.mapbox.com/search-js/v1.0.0-beta.18/web.js"></script>
+
+<script>
+const accessToken = '{mapbox_token}';
+ 
+const script = document.getElementById('search-js');
+script.onload = function() {{
+    mapboxsearch.autofill({{
+        accessToken
+    }});
+}};
+</script>
+"""
 
 class ImageModel:
     SYSTEM_PROMPT = "You are an artist and you will give a utmost realistic description of the surroundings."
@@ -88,6 +106,8 @@ if __name__ == '__main__':
         # st.title("GPT Viewmaster")
 
         model = ImageModel()
+
+        st.markdown(map_html, unsafe_allow_html=True)
 
         with st.sidebar:
             # image_model = st.selectbox("What chat model would you like to use?", ("dall-e-3", "dall-e-2"))
