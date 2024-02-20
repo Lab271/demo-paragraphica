@@ -47,6 +47,9 @@ $(VIRTUALENV)/bin/python: # create the local virtualenv
 count:
 	find . -path $(VIRTUALENV) -prune -o -name '*.py' | xargs wc -l
 
+run:
+	streamlit run gpt_viewmaster.py
+
 freeze:  ## Freezes pip requirements
 	@echo "# Generated on `date`" >| requirements.txt
 	@$(PYTHON) -m pip freeze | grep -v "$(PACKAGE)" >> requirements.txt

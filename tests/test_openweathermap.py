@@ -24,7 +24,7 @@ def test_openweathermap_live():
     assert res['weather'] is not None
 
 
-def test_checkmapbox_reverse():
+def test_openweathermap_json():
     f = open('./tests/openweathermap_sbp.json')
     res = json.loads(f.read())
     f.close()

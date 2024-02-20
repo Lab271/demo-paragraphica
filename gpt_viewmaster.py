@@ -23,7 +23,7 @@ class ImageModel:
 
     def get_address(self, lat, lon):
         res = call_mapbox(lat, lon)['properties']['context']
-        pprint.pprint(res)
+        # pprint.pprint(res)
         street = ""
         if 'address' in res:
             street=res['address']['name'] + ", "
@@ -107,7 +107,6 @@ if __name__ == '__main__':
             address = model.get_address(lat, lon)
             weather = model.describe_weather(lat, lon) if include_weather else ""
             description = model.describe_location(address)
-            print(description)
             prompt = model.generate_prompt(main_prompt, address, description, weather, style=image_style)
             st.caption(prompt)
             prompt, image = model.generate(prompt=prompt, image_quality=image_quality, gen_style=gen_style)

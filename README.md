@@ -1,5 +1,5 @@
 # paragraphica
-Our remake of the paragraphica project by [Bjoern Karmann](https://bjoernkarmann.dk/project/paragraphica). This codebase is setup such that it can be tested from any developer laptop without the need of a Raspberry or GPS devices.
+Our remake of the paragraphica project by [Bjoern Karmann](https://bjoernkarmann.dk/project/paragraphica). This codebase is setup such that it can be tested from any developer laptop without the need of a Raspberry or GPS devices. Working title is now gpt_viewmaster, our GPT pane on the world.
 
 Be sure to set the environ variables first
 

@@ -3,6 +3,7 @@ from base64 import b64decode
 import pprint
 client = OpenAI()
 
+@pytest.mark.skip(reason="this is a live action call, use file instead")
 def test_text():
     response = client.chat.completions.create(
     model="gpt-3.5-turbo-0125",
@@ -14,6 +15,7 @@ def test_text():
     )
     print(response.choices[0].message.content)
 
+@pytest.mark.skip(reason="this is a live action call, use file instead")
 def test_genimage(prompt="a white siamese cat"):
     response = client.images.generate(
     model="dall-e-3",
