@@ -1,147 +1,68 @@
-from paragraphica.mapbox import call_mapbox
-from paragraphica.openweathermap import call_openweathermap
+from paragraphica import ImageModel
 import streamlit as st
 import os
-from PIL import Image
-from base64 import b64decode
-import pprint
+
 from mapbox import Geocoder
 
 mapbox_token = os.environ["PARA_MAPBOX_API"]
 
-class ImageModel:
-    SYSTEM_PROMPT = "You are an artist and you will give a utmost realistic description of the surroundings."
-    LOCATION_PROMPT = "Mention only three interesting spots in the vicinity of {} in one sentence without mentioning the address with the template 'Near by you can see:'"
-    MAIN_PROMPT = "Give a typical view of "
-    IMAGE_PROMPT = "Use {} as image style."
-    WEATHER_PROMPT = "The temperature is {} degrees Celsius with {}."
-    MODEL = "gpt-4"
+DEFAULT_LOCATION = "Schiphol-Rijk"
 
-    def __init__(self):
-        from openai import OpenAI
+MAIN_PROMPT = "Give a typical view of "
 
-        self.client = OpenAI()
-        self.history = []
-        self.size = "1024x1024"
-        self.quality = "standard"
+SYSTEM_PROMPT = "You are an artist and you will give a utmost realistic description of the surroundings."
 
-    def get_address(self, lat, lon):
-        res = call_mapbox(lat, lon)["properties"]["context"]
-        # pprint.pprint(res)
-        street = ""
-        if "address" in res:
-            street = res["address"]["name"] + ", "
-        elif "street" in res:
-            street = res["street"]["name"] + ", "
-        address = street + res["place"]["name"] + ", " + res["country"]["name"]
-        return address
+STYLE_PROMPTS = {
+    'realistic': 'Use a realistic imaging style like a photograph.',
+    'film noir': 'Use a darkish black and white film noir picture style.',
+    'impressionism': 'Use a 19th century impressionistic painting style.',
+    'cubistic': 'Apply cubistic painting style.',
+    'lego': 'Provide this as a fictional lego box set with typical characters to buy in the store.',
+    'isometric': 'Show this as a 3D isometric graphic with characteristic landmarks.',
+    'coloring page': 'Coloring page style, bold lines, black and white.',
+    'pop-up': 'pop up HAPPY BIRTHDAY greeting card for a rugby fan.',
+    'Dali': "Use a surrealistic Dali dream style like the 'The Persistence of Memory' painting with clocks and a rhinosoros."
+}
 
-    def describe_location(self, address):
-        thread = [
-            {"role": "system", "content": ImageModel.SYSTEM_PROMPT},
-            {"role": "user", "content": ImageModel.LOCATION_PROMPT.format(address)},
-        ]
-        res = (
-            self.client.chat.completions.create(
-                model=ImageModel.MODEL,
-                messages=thread,
-                max_tokens=256,
-                temperature=0.1,
-                top_p=0.1,
-            )
-            .choices[0]
-            .message.content
-        )
-        return res
+CONTEXT_PROMPTS = {
+    'Main attraction': "Provide the single main attraction near {} in a few sentences. ",
+    "Three Highlights": "Mention only three interesting spots in the vicinity of {} in one sentence without mentioning the address with the template 'Near by you can see:'. ",
+    "Local Fauna": "Briefly describe the local fauna near {}. ", 
+    "Local Flora": "Provide a clear description in 5 sentences of the local flora near {}. "
+}
 
-    def describe_weather(self, lat, lon):
-        res = call_openweathermap(lat, lon)
-        return ImageModel.WEATHER_PROMPT.format(res["main"]["temp"], res["weather"][0]["main"])
-
-    def generate_prompt(self, main_prompt, address, description, weather, style):
-        prompt = main_prompt
-        prompt += " " + address + ". "
-        prompt += description + " "
-        prompt += weather + " "
-        if style == "lego":
-            prompt += "Provide this as a fictional lego box with typical characters."
-        elif style == "isometric":
-            prompt += "Show this as a 3D isometric graphic with characteristic landmarks."
-        elif style == "coloring page":
-            prompt += "Coloring page style, bold lines, black and white"
-        elif style == "pop-up":
-            prompt += "pop up HAPPY BIRTHDAY greeting card for a rugby fan"
-        elif style == "Dali":
-            prompt += "Use a surrealistic Dali dream style like the 'The Persistence of Memory' painting with clocks and rhinosoros."
-        else:
-            prompt += ImageModel.IMAGE_PROMPT.format(style)
-        return prompt
-
-    def generate(self, prompt, model="dall-e-3", image_quality="standard", gen_style="natural"):
-        response = self.client.images.generate(
-            model=model,
-            prompt=prompt,
-            size=self.size,
-            style=gen_style,
-            quality=image_quality,
-            response_format="b64_json",
-            n=1,
-        )
-
-        image_data = b64decode(response.data[0].b64_json)
-        prompt = response.data[0].revised_prompt
-        return prompt, image_data
-
+BASIC_LOCATION = (52.274972, 4.750813) # Schuberg Philis
 
 if __name__ == "__main__":
-    # st.title("GPT Viewmaster")
-
-    model = ImageModel()
+    model = ImageModel(styles=STYLE_PROMPTS, contexts=CONTEXT_PROMPTS, system_prompt=SYSTEM_PROMPT)
     geocoder = Geocoder(access_token=mapbox_token)
-    lat_display_value = 52.274972
-    lon_display_value = 4.750813
-
-    #    components.html(map_html, width=400, height=300)
+    lat_display_value = BASIC_LOCATION[0]
+    lon_display_value = BASIC_LOCATION[1]
 
     with st.sidebar:
-        # image_model = st.selectbox("What chat model would you like to use?", ("dall-e-3", "dall-e-2"))
-        # image_size = st.selectbox("Select size", ("256x256", "1012x1012"))
-        location = st.text_input("Enter location")
+        btn = st.button("Generate")
+        location = st.text_input("Enter location (will become lat/lon)", value=DEFAULT_LOCATION)
         if location:
             response = geocoder.forward(location)
             if response.status_code == 200:
                 coords = response.json()['features'][0]['center']
                 lon_display_value = coords[0]
                 lat_display_value = coords[1]
-
-        image_quality = st.selectbox("Select quality", ("standard", "hd"))
-        gen_style = st.selectbox("Select generation style", ("natural", "vivid"))
-        image_style = st.selectbox(
-            "What style would you like to use?",
-            (
-                "realistic",
-                "film noir",
-                "cartoon",
-                "impressionistic",
-                "cubistic",
-                "isometric",
-                "lego",
-                "coloring page",
-                "pop-up",
-                "Dali",
-            ),
-        )
-        include_weather = st.checkbox("Include Weather", value=False)
         lat = st.number_input("Lat", value=lat_display_value, step=None, format="%0.6f")
         lon = st.number_input("Lon", value=lon_display_value, step=None, format="%0.6f")
-        main_prompt = st.text_area("main prompt", value=model.MAIN_PROMPT, height=100)
-        btn = st.button("Generate")
+
+        image_quality = st.selectbox("Select quality", ("hd", "standard"))
+        gen_style = st.selectbox("Select generation style", ("vivid", "natural"))
+        image_style = st.selectbox("What style would you like to use?", STYLE_PROMPTS.keys())
+        image_context = st.selectbox("What context would you like to use?", CONTEXT_PROMPTS.keys())
+        include_weather = st.checkbox("Include Weather", value=False)
+        main_prompt = st.text_area("main prompt", value=MAIN_PROMPT, height=100)
 
     if btn:
         st.map({"latitude": [lat], "longitude": [lon]})
         address = model.get_address(lat, lon)
         weather = model.describe_weather(lat, lon) if include_weather else ""
-        description = model.describe_location(address)
+        description = model.describe_location(address, image_context)
         prompt = model.generate_prompt(main_prompt, address, description, weather, style=image_style)
         st.caption(prompt)
         prompt, image = model.generate(prompt=prompt, image_quality=image_quality, gen_style=gen_style)

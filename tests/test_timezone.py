@@ -13,7 +13,7 @@ def test_geotimezone_live():
     response = requests.get(api_url.format(SBP[0], SBP[1]))
     res = response.json()
     print(res)
-    assert res['longitutde'] is not None
+    assert res['longitude'] is not None
 
 
 def test_geotimezone():
