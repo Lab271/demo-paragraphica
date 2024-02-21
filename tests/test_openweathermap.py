@@ -21,7 +21,7 @@ def test_openweathermap_live():
     response = requests.get(api_url.format(SBP[0], SBP[1], token))
     res = response.json()
     print(res)
-    assert res['weather'] is not None
+    assert res['weather'] is  None
 
 
 def test_openweathermap_json():
