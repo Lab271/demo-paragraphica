@@ -48,7 +48,7 @@ count:
 	find . -path $(VIRTUALENV) -prune -o -name '*.py' | xargs wc -l
 
 run:
-	streamlit run gpt_viewmaster.py
+	streamlit run terra_artificialis.py
 
 freeze:  ## Freezes pip requirements
 	@echo "# Generated on `date`" >| requirements.txt

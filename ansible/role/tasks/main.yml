@@ -1,10 +1,13 @@
-- name: Ensures existance /opt/{{ project_root }}
-  ansible.builtin.file:
-    path: "/opt/{{ project_root }}"
-    state: directory
-    owner: "{{ user }}"
-    group: "{{ group }}"
-    mode: '0755'
+- name: Set the motd
+  ansible.builtin.template:
+    src: motd.j2
+    dest: /etc/motd
+    owner: root
+    group: root
+    mode: '0644'
+- name: Install virtualenv
+  ansible.builtin.command: python -m pip install virtualenv
+
 - name: Checkout code from github # noqa: latest
 # NB: in folder of provisioning user!
   become: false
@@ -12,10 +15,21 @@
     repo: "{{ git_repo }}"
     dest: "{{ project_root }}"
     accept_hostkey: true
-- name: Set credentials
+
+- name: Ensures existence /opt/{{ project_root }}
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ user }}"
+    group: "{{ group }}"
+    mode: '0755'
+  loop:
+    - "/opt/{{ project_root }}"
+    - "/opt/{{ project_root }}/paragraphica"
+- name: Set credential file
   ansible.builtin.template:
-    src: vars.py.j2
-    dest: "/opt/{{ project_root }}/vars.py"
+    src: config.ini.j2
+    dest: "/opt/{{ project_root }}/config.ini"
     owner: "{{ user }}"
     group: "{{ group }}"
     mode: '0700'
@@ -23,15 +37,47 @@
   vars:
     MAPBOX_API: "{{ lookup('community.general.onepassword', 'Mapbox', field='paragraphica', vault='Labs') }}"
     OPENWEATHERMAP_API: "{{ lookup('community.general.onepassword', 'Openweathermap', field='paragraphica', vault='Labs') }}"
-- name: Copy files to working folder
+    OPENAI_API_KEY: "{{ lookup('community.general.onepassword', 'openai.com', field='paragraphica', vault='Labs') }}"
+- name: create virtualenv
+  ansible.builtin.command: "$HOME/.local/bin/virtualenv .env"
+  become: false
+
+- name: install packages
+  ansible.builtin.shell: ".env/bin/python -m pip install {{ item }}"
+  loop:
+    - openai
+    - mapbox
+
+- name: Copy role file to working folder
+  ansible.builtin.copy:
+    src: start_service.sh
+    dest: "/opt/{{ project_root }}"
+    owner: "{{ user }}"
+    group: "{{ group }}"
+    mode: '0755'
+  changed_when: true
+
+- name: Copy .env to working folder
+  ansible.builtin.copy:
+    src: .env
+    dest: "/opt/{{ project_root }}"
+    owner: "{{ user }}"
+    group: "{{ group }}"
+    mode: '0755'
+    remote_src: true
+  changed_when: true
+
+- name: Copy python files to working folder
   # this is taken from the checkout repo of provisioning user!
   ansible.builtin.copy:
-    src: "{{ project_root }}/src/{{ item.file }}"
-    dest: "/opt/{{ project_root }}/{{ item.file }}"
+    src: "{{ project_root }}/{{ item }}"
+    dest: "/opt/{{ project_root }}/{{ item }}"
     owner: "{{ user }}"
     group: "{{ group }}"
     remote_src: true
     mode: '0755'
   loop:
-    - file: ./paragraphica.py
+    - terra_artificialis.py
+    - src/paragraphica/__init__.py
+    - src/paragraphica/api.py
   changed_when: true
