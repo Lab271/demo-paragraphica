@@ -6,7 +6,7 @@
 - name: Install virtualenv
   ansible.builtin.command: python -m pip install virtualenv
 
-- name: Checkout code from github # noqa: latest
+- name: Checkout code from github
 # NB: in folder of provisioning user!
   become: false
   ansible.builtin.git:
@@ -36,8 +36,9 @@
 - name: create virtualenv
   ansible.builtin.command: "virtualenv /opt/{{ project_root }}/.env"
 - name: install packages
-  ansible.builtin.shell: "/opt/{{ project_root }}/.env/bin/python -m pip install {{ item }}"
+  ansible.builtin.shell: "/opt/{{ project_root }}/.env/bin/python -m pip install --upgrade {{ item }}"
   loop:
+    - pip
     - openai
     - streamlit
     - mapbox
