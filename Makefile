@@ -24,6 +24,8 @@ dev:$(VIRTUALENV)/bin/python  ## Install this for development
 	@$(PYTHON) -m pip install -e .
 
 	@$(PYTHON) -m pip install openai
+	@$(PYTHON) -m pip install streamlit
+	@$(PYTHON) -m pip install mapbox
 
 	@$(PYTHON) -m pip install ruff
 	@$(PYTHON) -m pip install pytest
@@ -48,7 +50,7 @@ count:
 	find . -path $(VIRTUALENV) -prune -o -name '*.py' | xargs wc -l
 
 run:
-	streamlit run terra_artificialis.py
+	streamlit run terra_virtualis.py
 
 freeze:  ## Freezes pip requirements
 	@echo "# Generated on `date`" >| requirements.txt

@@ -15,7 +15,7 @@ MAIN_PROMPT = "Give a typical view of "
 SYSTEM_PROMPT = "You are an artist and you will give a utmost realistic description of the surroundings."
 
 STYLE_PROMPTS = {
-    'realistic': 'Use a realistic imaging style like in a photograph.',
+    'realistic': 'Use a cinematic realism image. Realistic with cinematic photography.',
     'film noir': 'Use a low key black and white film noir picture style.',
     'frank miller': 'Apply a sinister frank miller style like the movie "Sin City".',
     'impressionism': 'Use a 19th century impressionistic painting style.',

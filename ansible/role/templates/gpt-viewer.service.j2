@@ -1,0 +1,13 @@
+[Unit]
+Description=Kiosk
+After=graphical.target ppe.service
+
+[Service]
+User={{ user }}
+Group={{ group }}
+ExecStart=/bin/bash /home/{{ user }}/start-kiosk.sh
+Environment=DISPLAY=:0
+Restart=always
+
+[Install]
+WantedBy=default.target

@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 source ./config.ini
-./.env/bin/activate
-python terra_artificialis.py
+source ./.env/bin/activate
+streamlit run terra_artificialis.py
