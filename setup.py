@@ -16,7 +16,7 @@ setup(
     maintainer='Marco Schreurs, Ilja Heitlager',
     maintainer_email='mschreurs@schubergphilis.com, iheitlager@schubergphilis.com',
     keywords=["hack interpreter", "development-tools"],
-    url='https://github.com/lab271/paragraphica',
+    url='https://github.com/lab271/demo-paragraphica',
     packages=find_packages('src'),
     package_dir={'': 'src'},
     test_suite="tests",

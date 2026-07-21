@@ -9,7 +9,7 @@ Requirements
 The role cookbook will take care of it
 
 * Python 3
-* [LAB271/paragraphica](https://github.com/LAB271/paragraphica)
+* [LAB271/demo-paragraphica](https://github.com/LAB271/demo-paragraphica)
  
 Role Variables
 --------------
@@ -35,7 +35,7 @@ Including an example of how to use your role (for instance, with variables passe
 License
 -------
  
-[MIT License](https://github.com/LAB271/paragraphica/blob/main/LICENSE)
+[MIT License](https://github.com/LAB271/demo-paragraphica/blob/main/LICENSE)
  
 Author Information
 ------------------
