@@ -43,6 +43,14 @@ GEMINI_ASPECT = {"1024x1024": "1:1", "1536x1024": "3:2", "1024x1536": "2:3"}
 GEMINI_IMAGE_SIZE = {"low": "1K", "medium": "1K", "high": "2K"}
 
 
+def _afc_disabled():
+    # We pass no tools, but the SDK still logs an "automatic function calling is not
+    # recommended" warning on every direct generate_content call unless AFC is off.
+    from google.genai import types
+
+    return types.AutomaticFunctionCallingConfig(disable=True)
+
+
 def call_gemini_text(model: str, messages: list[dict], max_tokens: int = 400, temperature: float = 0.1) -> str:
     from google import genai
     from google.genai import types
@@ -54,7 +62,10 @@ def call_gemini_text(model: str, messages: list[dict], max_tokens: int = 400, te
         model=model,
         contents=user,
         config=types.GenerateContentConfig(
-            system_instruction=system, max_output_tokens=max_tokens, temperature=temperature
+            system_instruction=system,
+            max_output_tokens=max_tokens,
+            temperature=temperature,
+            automatic_function_calling=_afc_disabled(),
         ),
     )
     return res.text or ""
@@ -73,6 +84,7 @@ def call_gemini_image(prompt: str, model: str, quality: str, size: str) -> tuple
         contents=prompt,
         config=types.GenerateContentConfig(
             response_modalities=["IMAGE", "TEXT"],
+            automatic_function_calling=_afc_disabled(),
             image_config=types.ImageConfig(
                 aspect_ratio=GEMINI_ASPECT.get(size, "1:1"),
                 image_size=GEMINI_IMAGE_SIZE.get(quality, "1K"),
