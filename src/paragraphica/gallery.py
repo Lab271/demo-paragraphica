@@ -26,6 +26,25 @@ summary { cursor:pointer; color:var(--muted); font-size:.85rem; }
 details p { white-space:pre-wrap; margin:.5rem 0 0; font-size:.9rem; }
 details .prompt { color:var(--muted); }
 footer { color:var(--muted); text-align:center; padding:2rem; font-size:.85rem; }
+article img { cursor:zoom-in; }
+#view { position:fixed; inset:0; background:rgba(0,0,0,.94); display:none; flex-direction:column; z-index:10; }
+#view.open { display:flex; }
+#view .bar { display:flex; gap:.5rem; align-items:center; padding:.6rem 1rem; }
+#view .bar .pos { color:var(--muted); font-size:.9rem; }
+#view .bar button { margin-left:auto; }
+#view button { background:#2a2a2a; color:var(--fg); border:0; border-radius:6px; padding:.4rem .8rem; cursor:pointer; font:inherit; }
+#view button:hover { background:#3a3a3a; }
+#view .stage { flex:1; display:flex; align-items:center; justify-content:center; min-height:0; position:relative; }
+#view .stage img { max-width:100%; max-height:100%; object-fit:contain; }
+#view .nav { position:absolute; top:50%; transform:translateY(-50%); font-size:2rem; padding:.6rem 1rem; opacity:.7; }
+#view .nav:hover { opacity:1; }
+#view .prev { left:1rem; } #view .next { right:1rem; }
+#view .info { padding:.8rem 1.5rem 1.2rem; max-height:38vh; overflow:auto; border-top:1px solid #2a2a2a; }
+#view .info h2 { margin:.3rem 0 .4rem; }
+#view .info p { margin:.4rem 0; white-space:pre-wrap; }
+#view .info .prompt { color:var(--muted); font-size:.9rem; }
+#view.full .bar, #view.full .info { display:none; }
+#view.full .stage img { max-height:100vh; }
 form#gen { display:flex; flex-wrap:wrap; gap:.6rem; align-items:center; padding:1rem 1.5rem; background:var(--card); border-bottom:1px solid #2a2a2a; }
 form#gen input, form#gen select { background:var(--bg); color:var(--fg); border:1px solid #333; padding:.45rem .6rem; border-radius:6px; font:inherit; }
 form#gen input[name=location] { flex:1 1 14rem; min-width:10rem; }
@@ -41,6 +60,55 @@ sel.addEventListener('change', () => {
   for (const a of document.querySelectorAll('article'))
     a.hidden = sel.value !== '' && a.dataset.style !== sel.value;
 });
+"""
+
+VIEWER = """
+<div id=view role=dialog aria-modal=true aria-label="Image detail">
+  <div class=bar><span class=pos></span><button data-act=full title="Only the picture (F)">Full</button><button data-act=close title="Close (Esc)">Close ✕</button></div>
+  <div class=stage><button class="nav prev" data-act=prev title="Previous (←)">‹</button><img alt=""><button class="nav next" data-act=next title="Next (→)">›</button></div>
+  <div class=info><div class=meta></div><h2></h2><p class=desc></p><p class=prompt></p><p class=note></p></div>
+</div>
+"""
+
+VIEWER_JS = """
+const view = document.getElementById('view');
+const cards = () => [...document.querySelectorAll('article')];
+let cur = -1;
+function show(i) {
+  const list = cards(); if (!list.length) return;
+  cur = (i + list.length) % list.length;
+  const a = list[cur];
+  view.querySelector('.stage img').src = a.querySelector('img').src;
+  view.querySelector('.stage img').alt = a.querySelector('img').alt;
+  view.querySelector('.meta').innerHTML = a.querySelector('.meta').innerHTML;
+  view.querySelector('h2').textContent = a.querySelector('h2').textContent;
+  const ps = a.querySelectorAll('details p');
+  view.querySelector('.desc').textContent = ps[0] ? ps[0].textContent : '';
+  view.querySelector('.prompt').textContent = ps[1] ? ps[1].textContent : '';
+  view.querySelector('.note').textContent = ps[2] ? ps[2].textContent : '';
+  view.querySelector('.pos').textContent = `${cur + 1} / ${list.length}`;
+  view.classList.add('open'); document.body.style.overflow = 'hidden';
+  history.replaceState(null, '', '#' + (cur + 1));
+}
+function close() { view.classList.remove('open', 'full'); document.body.style.overflow = ''; history.replaceState(null, '', location.pathname); }
+document.querySelectorAll('article a').forEach((a, i) => a.addEventListener('click', ev => { ev.preventDefault(); show(i); }));
+view.addEventListener('click', ev => {
+  const act = ev.target.dataset.act;
+  if (act === 'close') close();
+  else if (act === 'prev') show(cur - 1);
+  else if (act === 'next') show(cur + 1);
+  else if (act === 'full') view.classList.toggle('full');
+  else if (ev.target.tagName === 'IMG' && view.classList.contains('full')) view.classList.remove('full');
+});
+document.addEventListener('keydown', ev => {
+  if (!view.classList.contains('open')) return;
+  if (ev.key === 'Escape') close();
+  else if (ev.key === 'ArrowLeft') show(cur - 1);
+  else if (ev.key === 'ArrowRight') show(cur + 1);
+  else if (ev.key.toLowerCase() === 'f') view.classList.toggle('full');
+});
+const hash = parseInt(location.hash.slice(1), 10);
+if (hash > 0) show(hash - 1);
 """
 
 CONTROLS = """
@@ -120,7 +188,8 @@ def render(records: list[Record], title: str = "Terra Virtualis", image_base: st
 <select id=style aria-label="Filter by style"><option value="">all styles</option>{options}</select></header>
 {CONTROLS if controls else ""}
 <main>{cards}</main>
+{VIEWER}
 <footer>A lensless camera that imagines the view from where it stands. After Bjørn Karmann's Paragraphica.</footer>
-<script>{JS}{CONTROLS_JS if controls else ""}</script>
+<script>{JS}{VIEWER_JS}{CONTROLS_JS if controls else ""}</script>
 </body></html>
 """
