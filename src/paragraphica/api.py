@@ -56,3 +56,56 @@ def call_gpt(model: str, messages: list[dict], max_tokens: int = 400, temperatur
         temperature=temperature,
     )
     return res.choices[0].message.content or ""
+
+
+# --- Google Gemini (google-genai; key from GEMINI_API_KEY or GOOGLE_API_KEY) ---
+
+# Gemini image models take an aspect ratio + 1K/2K/4K instead of WxH + low/medium/high.
+GEMINI_ASPECT = {"1024x1024": "1:1", "1536x1024": "3:2", "1024x1536": "2:3"}
+GEMINI_IMAGE_SIZE = {"low": "1K", "medium": "1K", "high": "2K"}
+
+
+def call_gemini_text(model: str, messages: list[dict], max_tokens: int = 400, temperature: float = 0.1) -> str:
+    from google import genai
+    from google.genai import types
+
+    system = " ".join(m["content"] for m in messages if m["role"] == "system") or None
+    user = "\n".join(m["content"] for m in messages if m["role"] == "user")
+    client = genai.Client()
+    res = client.models.generate_content(
+        model=model,
+        contents=user,
+        config=types.GenerateContentConfig(
+            system_instruction=system, max_output_tokens=max_tokens, temperature=temperature
+        ),
+    )
+    return res.text or ""
+
+
+def call_gemini_image(prompt: str, model: str, quality: str, size: str) -> tuple[str | None, bytes]:
+    """Image via generate_content (Imagen endpoints were shut down Aug 2026).
+    Returns (accompanying text if any, PNG/JPEG bytes)."""
+    from google import genai
+    from google.genai import types
+
+    client = genai.Client()
+    res = client.models.generate_content(
+        model=model,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            response_modalities=["IMAGE", "TEXT"],
+            image_config=types.ImageConfig(
+                aspect_ratio=GEMINI_ASPECT.get(size, "1:1"),
+                image_size=GEMINI_IMAGE_SIZE.get(quality, "1K"),
+            ),
+        ),
+    )
+    text, image = None, None
+    for part in res.candidates[0].content.parts:
+        if part.inline_data is not None and image is None:
+            image = part.inline_data.data
+        elif part.text:
+            text = (text or "") + part.text
+    if image is None:
+        raise RuntimeError(f"Gemini returned no image for model {model!r}: {text!r}")
+    return text, image

@@ -2,7 +2,7 @@
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install lock lint format test coverage ci run dry-run streamlit clean
+.PHONY: help install lock lint format test coverage ci env-check run dry-run streamlit clean
 
 help: ## Show this help
 	@echo ""
@@ -39,18 +39,26 @@ coverage: ## Test suite with coverage report
 ci: lint test ## Full local gate
 
 # === Run ===
+# API keys come from 1Password at run time via the references in op.env
+# (`op run` injects them into the child process only). OP= to bypass, e.g.
+# when the variables are already exported: make run OP=
 
 LOCATION ?= Schiphol-Rijk
 STYLE ?= realistic
+BACKEND ?= gemini
+OP ?= op run --env-file=op.env --
 
-run: ## Generate one image: make run LOCATION="Amsterdam" STYLE="film noir"
-	uv run terra generate --location "$(LOCATION)" --style "$(STYLE)"
+env-check: ## Show which 1Password items in op.env resolve (prints no values)
+	tools/op-env.sh --check
+
+run: ## Generate one image: make run LOCATION="Amsterdam" STYLE="film noir" BACKEND=openai
+	$(OP) uv run terra generate --location "$(LOCATION)" --style "$(STYLE)" --backend "$(BACKEND)"
 
 dry-run: ## Description + prompt only, no image call
-	uv run terra generate --location "$(LOCATION)" --style "$(STYLE)" --dry-run
+	$(OP) uv run terra generate --location "$(LOCATION)" --style "$(STYLE)" --backend "$(BACKEND)" --dry-run
 
 streamlit: ## Legacy Streamlit UI (removed in #10)
-	uv run --extra streamlit streamlit run terra_virtualis.py
+	$(OP) uv run --extra streamlit streamlit run terra_virtualis.py
 
 # === Housekeeping ===
 

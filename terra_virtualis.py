@@ -6,7 +6,7 @@ import pprint
 import streamlit as st
 
 from paragraphica import api, prompts
-from paragraphica.backend import OpenAIBackend
+from paragraphica.backend import make_backend
 from paragraphica.core import Request, generate
 
 DEFAULT_LOCATION = "Schiphol-Rijk"
@@ -47,7 +47,7 @@ if __name__ == "__main__":
             include_weather=include_weather,
             quality=image_quality,
         )
-        result = generate(req, OpenAIBackend())
+        result = generate(req, make_backend())
         st.caption(result.context.address)
         st.map({"latitude": [lat], "longitude": [lon]}, zoom=15)
         st.caption(pprint.pformat(result.description))

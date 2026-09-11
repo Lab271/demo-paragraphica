@@ -18,13 +18,30 @@ Then, for the developer loop:
 ```
 `make help` lists everything. The Streamlit UI is legacy (`make streamlit`, removed in #10). See `docs/plan-2026-09.md` for the rebuild plan.
 
-Be sure to have the environment variables available:
-```
-    export PARA_MAPBOX_API={{ MAPBOX_API }}
-    export PARA_OPENWEATHERMAP_API={{ OPENWEATHERMAP_API }}
-    export OPENAI_API_KEY={{ OPENAI_API_KEY }}
-```
-which can be found in our password tools.
+## API keys
+
+Keys live in the 1Password **Labs** vault and never in a file. `op.env` holds the
+secret *references*; `make run` / `make dry-run` wrap the command in
+`op run --env-file=op.env` so the keys exist only inside that process. For a
+shell session: `eval "$(tools/op-env.sh)"`. `make env-check` shows which items
+resolve without printing values.
+
+| Variable | 1Password item (field `paragraphica`) | Used by |
+|---|---|---|
+| `GEMINI_API_KEY` | `Gemini` | default backend (`PARA_BACKEND=gemini`) |
+| `OPENAI_API_KEY` | `openai.com` | `--backend openai` |
+| `PARA_MAPBOX_API` | `Mapbox` | geocoding |
+| `PARA_OPENWEATHERMAP_API` | `Openweathermap` | `--weather` |
+
+**Getting a Gemini key:** sign in with the Labs Google account at
+https://aistudio.google.com/apikey and create a key. Attach it to a Google Cloud
+project with billing enabled; the free tier is rate-limited and image models
+are billed per image. Store it as item `Gemini`, field `paragraphica`, in the
+Labs vault so both `op.env` and the Ansible role find it. Model docs:
+https://ai.google.dev/gemini-api/docs/image-generation
+
+Override models with `PARA_TEXT_MODEL` / `PARA_IMAGE_MODEL`; switch provider
+with `PARA_BACKEND=openai` or `--backend openai`.
 
 ## Todo
 1. [DONE] raspberry pi python setup

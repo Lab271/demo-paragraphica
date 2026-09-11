@@ -6,7 +6,7 @@ from typing import Annotated
 import typer
 
 from paragraphica import api, core, prompts
-from paragraphica.backend import OpenAIBackend
+from paragraphica import backend as backends
 
 app = typer.Typer(no_args_is_help=True, help="Terra Virtualis: imagine the view at a location.")
 
@@ -27,6 +27,9 @@ def generate(
     context: Annotated[str, typer.Option("--context", "-c")] = "main attraction",
     position: Annotated[str, typer.Option("--position", "-p")] = "normal",
     quality: Annotated[str, typer.Option(help="low | medium | high")] = "medium",
+    backend: Annotated[
+        str, typer.Option("--backend", "-b", help="gemini | openai (PARA_BACKEND)")
+    ] = backends.DEFAULT_BACKEND,
     weather: Annotated[bool, typer.Option(help="Include current weather")] = False,
     time: Annotated[bool, typer.Option(help="Include local time of day")] = True,
     dry_run: Annotated[bool, typer.Option("--dry-run", help="Print description + prompt, make no image call")] = False,
@@ -36,6 +39,7 @@ def generate(
     _choice("style", style, prompts.STYLES)
     _choice("context", context, prompts.CONTEXTS)
     _choice("position", position, prompts.POSITIONS)
+    _choice("backend", backend, backends.BACKENDS)
 
     if lat is None or lon is None:
         lat, lon = api.call_mapbox_forward(location) if location else DEFAULT_LATLON
@@ -50,8 +54,9 @@ def generate(
         include_weather=weather,
         quality=quality,
     )
-    result = core.generate(req, OpenAIBackend(), dry_run=dry_run)
+    result = core.generate(req, backends.make_backend(backend), dry_run=dry_run)
 
+    typer.echo(f"Backend:     {backend}")
     typer.echo(f"Location:    {result.context.address} ({lat:.6f}, {lon:.6f})")
     if result.context.time_of_day:
         typer.echo(f"Time:        {result.context.time_of_day}")

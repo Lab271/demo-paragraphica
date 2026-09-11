@@ -22,7 +22,7 @@ class FakeBackend:
 def _offline(monkeypatch):
     """No network: fake backend, and the geo lookups replaced by a fixed context."""
     FakeBackend.image_calls = 0
-    monkeypatch.setattr(cli, "OpenAIBackend", FakeBackend)
+    monkeypatch.setattr(cli.backends, "make_backend", lambda name: FakeBackend())
     monkeypatch.setattr(cli.core, "build_context", lambda *a, **k: CTX)
 
 
