@@ -226,7 +226,7 @@ def render(records: list[Record], title: str = "Terra Virtualis", image_base: st
 <title>{escape(title)}</title><style>{CSS}</style></head>
 <body>
 <header><h1>{escape(title)}</h1><span class=count>{len(recs)} images</span>
-<select id=style aria-label="Filter by style"><option value="">all styles</option>{options}</select></header>
+<select id=style aria-label="Filter by look"><option value="">all looks</option>{options}</select></header>
 {CONTROLS if controls else ""}
 <main>{cards}</main>
 {VIEWER}
