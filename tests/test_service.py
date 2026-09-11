@@ -60,6 +60,7 @@ def test_history_newest_first_and_gallery(client):
     page = client.get("/")
     assert page.status_code == 200 and page.text.count("<article") == 2
     assert 'src="/images/' in page.text  # served page must not link images relative to /
+    assert "<form id=gen" in page.text  # #16: generate controls on the served page
 
 
 def test_validation(client):
