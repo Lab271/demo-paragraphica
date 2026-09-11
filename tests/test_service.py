@@ -59,6 +59,7 @@ def test_history_newest_first_and_gallery(client):
     assert len(client.get("/history?last=1").json()) == 1
     page = client.get("/")
     assert page.status_code == 200 and page.text.count("<article") == 2
+    assert 'src="/images/' in page.text  # served page must not link images relative to /
 
 
 def test_validation(client):

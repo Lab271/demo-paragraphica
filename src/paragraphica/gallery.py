@@ -37,13 +37,14 @@ sel.addEventListener('change', () => {
 """
 
 
-def _card(r: Record) -> str:
+def _card(r: Record, image_base: str) -> str:
     when = r.timestamp.replace("T", " ")[:16]
     how = " · ".join(x for x in (r.position if r.position != "normal" else "", r.context, r.time_of_day) if x)
     revised = f"<p class=prompt><b>Model note</b> {escape(r.revised_prompt)}</p>" if r.revised_prompt else ""
+    src = escape(image_base + r.image)
     return f"""
 <article data-style="{escape(r.style)}">
-  <a href="{escape(r.image)}"><img src="{escape(r.image)}" alt="{escape(r.address)} in {escape(r.style)} style" loading="lazy"></a>
+  <a href="{src}"><img src="{src}" alt="{escape(r.address)} in {escape(r.style)} style" loading="lazy"></a>
   <div class=meta><span class=style>{escape(r.style)}</span><span class=when>{escape(when)}</span><span class=how>{escape(how)}</span></div>
   <h2>{escape(r.address)}</h2>
   <details>
@@ -55,12 +56,15 @@ def _card(r: Record) -> str:
 </article>"""
 
 
-def render(records: list[Record], title: str = "Terra Virtualis") -> str:
-    """Newest first. Pure function: records in, one HTML document out."""
+def render(records: list[Record], title: str = "Terra Virtualis", image_base: str = "") -> str:
+    """Newest first. Pure function: records in, one HTML document out.
+
+    `image_base` prefixes every image path: "" for output/index.html next to the
+    files, "/images/" when the service serves the page at /."""
     recs = sorted(records, key=lambda r: r.timestamp, reverse=True)
     styles = sorted({r.style for r in recs})
     options = "".join(f'<option value="{escape(s)}">{escape(s)}</option>' for s in styles)
-    cards = "".join(_card(r) for r in recs)
+    cards = "".join(_card(r, image_base) for r in recs)
     return f"""<!doctype html>
 <html lang=en><head><meta charset=utf-8><meta name=viewport content="width=device-width, initial-scale=1">
 <title>{escape(title)}</title><style>{CSS}</style></head>

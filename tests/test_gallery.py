@@ -42,6 +42,11 @@ def test_render_cards_newest_first_and_escaped():
     assert "gemini-3.1-flash-image · 20.5s" in html
 
 
+def test_image_base_prefixes_paths():
+    assert 'src="a.jpg"' in render([rec()])
+    assert 'src="/images/a.jpg"' in render([rec()], image_base="/images/")
+
+
 def test_revised_prompt_shown_when_present():
     assert "Model note" not in render([rec()])
     assert "Model note</b> caption" in render([rec(revised_prompt="caption")])

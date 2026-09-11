@@ -108,7 +108,7 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
 
     @app.get("/", response_class=HTMLResponse)
     def index() -> str:
-        return gallery.render(store.records())
+        return gallery.render(store.records(), image_base="/images/")
 
     return app
 
