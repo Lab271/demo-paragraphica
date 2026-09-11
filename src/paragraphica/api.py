@@ -38,6 +38,20 @@ def call_openweathermap(lat: float, lon: float) -> dict:
 
 # --- Google Gemini (google-genai; key from GEMINI_API_KEY or GOOGLE_API_KEY) ---
 
+GEMINI_TIMEOUT_MS = 60_000
+
+
+def _gemini_client():
+    """Our timeout, and the SDK's own retry loop disabled: backend.with_retry is the
+    only retry, so a hung call cannot block a dial press for minutes (#28)."""
+    from google import genai
+    from google.genai import types
+
+    return genai.Client(
+        http_options=types.HttpOptions(timeout=GEMINI_TIMEOUT_MS, retry_options=types.HttpRetryOptions(attempts=1))
+    )
+
+
 # Gemini image models take an aspect ratio + 1K/2K/4K instead of WxH + low/medium/high.
 GEMINI_ASPECT = {"1024x1024": "1:1", "1536x1024": "3:2", "1024x1536": "2:3"}
 GEMINI_IMAGE_SIZE = {"low": "1K", "medium": "1K", "high": "2K"}
@@ -52,12 +66,11 @@ def _afc_disabled():
 
 
 def call_gemini_text(model: str, messages: list[dict], max_tokens: int = 400, temperature: float = 0.1) -> str:
-    from google import genai
     from google.genai import types
 
     system = " ".join(m["content"] for m in messages if m["role"] == "system") or None
     user = "\n".join(m["content"] for m in messages if m["role"] == "user")
-    client = genai.Client()
+    client = _gemini_client()
     res = client.models.generate_content(
         model=model,
         contents=user,
@@ -75,10 +88,9 @@ def call_gemini_image(prompt: str, model: str, quality: str, size: str) -> tuple
     """Image via generate_content (Imagen endpoints were shut down Aug 2026).
     Returns (accompanying text if any, image bytes, mime type). The Developer API
     picks the format itself (JPEG in practice); output_mime_type is Vertex-only."""
-    from google import genai
     from google.genai import types
 
-    client = genai.Client()
+    client = _gemini_client()
     res = client.models.generate_content(
         model=model,
         contents=prompt,

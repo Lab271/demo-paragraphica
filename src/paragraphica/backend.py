@@ -5,6 +5,7 @@ Select with PARA_BACKEND (only "gemini" today; "local" arrives in #8). Model ids
 overridden with PARA_TEXT_MODEL / PARA_IMAGE_MODEL."""
 
 import os
+import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -14,31 +15,54 @@ from paragraphica import api
 
 DEFAULT_BACKEND = os.environ.get("PARA_BACKEND", "gemini")
 
-RETRIES = 1  # Gemini answers 503/504 roughly one call in three under load; one retry is enough
-RETRY_DELAY_S = 2.0
+# Gemini answers 503/504 about one call in twenty under load (#28); the first retry
+# almost always succeeds, the second is cheap insurance for a live demo.
+RETRY_DELAYS_S = (2.0, 6.0)
+MAX_429_WAIT_S = 30.0  # honour Google's retryDelay on a per-minute quota; a daily quota is not worth waiting for
 
 
 class TransientError(RuntimeError):
     """The model was unavailable after retrying; the caller may try again later."""
 
 
-def _is_transient(e: Exception) -> bool:
+def _status(e: Exception) -> int | None:
     code = getattr(e, "code", None) or getattr(e, "status_code", None)
-    return isinstance(code, int) and code >= 500
+    return code if isinstance(code, int) else None
 
 
-def with_retry[T](fn: Callable[[], T], retries: int = RETRIES, delay: float = RETRY_DELAY_S) -> T:
-    """Call fn; on a 5xx from the provider wait and retry `retries` times, then raise TransientError."""
-    for attempt in range(retries + 1):
+def _retry_after(e: Exception) -> float | None:
+    """Seconds Google asks us to wait on a 429 ('retryDelay': '48s'), if present."""
+    m = re.search(r"retryDelay['\"]?\s*:\s*['\"]?(\d+(?:\.\d+)?)s", str(e))
+    return float(m.group(1)) if m else None
+
+
+def _wait_before_retry(e: Exception, attempt: int, delays: tuple[float, ...]) -> float | None:
+    """How long to sleep before retrying `e`, or None when it must not be retried."""
+    code = _status(e)
+    if code is not None and code >= 500:
+        return delays[attempt] if attempt < len(delays) else None
+    if code == 429:
+        wait = _retry_after(e)
+        return wait if attempt == 0 and wait is not None and wait <= MAX_429_WAIT_S else None
+    return None
+
+
+def with_retry[T](fn: Callable[[], T], delays: tuple[float, ...] = RETRY_DELAYS_S) -> T:
+    """Call fn; retry on 5xx (backoff per `delays`) and once on a short 429; then TransientError.
+    Anything else propagates untouched."""
+    attempt = 0
+    while True:
         try:
             return fn()
         except Exception as e:  # provider SDKs raise their own hierarchies; filter on status code
-            if not _is_transient(e):
+            code = _status(e)
+            if code is None or (code < 500 and code != 429):
                 raise
-            if attempt == retries:
+            wait = _wait_before_retry(e, attempt, delays)
+            if wait is None:
                 raise TransientError(str(e)[:200]) from e
-            time.sleep(delay)
-    raise AssertionError("unreachable")
+            time.sleep(wait)
+            attempt += 1
 
 
 DEFAULT_MODELS = {
