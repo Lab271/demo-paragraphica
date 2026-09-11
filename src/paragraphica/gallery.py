@@ -34,8 +34,12 @@ article img { cursor:zoom-in; }
 #view .bar button { margin-left:auto; }
 #view button { background:#2a2a2a; color:var(--fg); border:0; border-radius:6px; padding:.4rem .8rem; cursor:pointer; font:inherit; }
 #view button:hover { background:#3a3a3a; }
-#view .stage { flex:1; display:flex; align-items:center; justify-content:center; min-height:0; position:relative; }
+#view .stage { flex:1; display:grid; grid-template-columns:minmax(0,3fr) minmax(0,2fr); gap:.6rem; padding:0 3.5rem; min-height:0; position:relative; }
+#view .stage .pic { display:flex; align-items:center; justify-content:center; min-height:0; }
 #view .stage img { max-width:100%; max-height:100%; object-fit:contain; }
+#view #map { min-height:0; border-radius:8px; background:#222; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:.9rem; text-align:center; padding:0 1rem; }
+#view #map.leaflet-container { padding:0; color:#333; }
+@media (max-width: 800px) { #view .stage { grid-template-columns:1fr; grid-template-rows:2fr 1fr; padding:0 .5rem; } }
 #view .nav { position:absolute; top:50%; transform:translateY(-50%); font-size:2rem; padding:.6rem 1rem; opacity:.7; }
 #view .nav:hover { opacity:1; }
 #view .prev { left:1rem; } #view .next { right:1rem; }
@@ -43,7 +47,8 @@ article img { cursor:zoom-in; }
 #view .info h2 { margin:.3rem 0 .4rem; }
 #view .info p { margin:.4rem 0; white-space:pre-wrap; }
 #view .info .prompt { color:var(--muted); font-size:.9rem; }
-#view.full .bar, #view.full .info { display:none; }
+#view.full .bar, #view.full .info, #view.full #map { display:none; }
+#view.full .stage { grid-template-columns:1fr; padding:0; }
 #view.full .stage img { max-height:100vh; }
 form#gen { display:flex; flex-wrap:wrap; gap:.6rem; align-items:center; padding:1rem 1.5rem; background:var(--card); border-bottom:1px solid #2a2a2a; }
 form#gen label { color:var(--muted); font-size:.9rem; display:flex; gap:.3rem; align-items:center; }
@@ -66,7 +71,7 @@ sel.addEventListener('change', () => {
 VIEWER = """
 <div id=view role=dialog aria-modal=true aria-label="Image detail">
   <div class=bar><span class=pos></span><button data-act=full title="Only the picture (F)">Full</button><button data-act=close title="Close (Esc)">Close ✕</button></div>
-  <div class=stage><button class="nav prev" data-act=prev title="Previous (←)">‹</button><img alt=""><button class="nav next" data-act=next title="Next (→)">›</button></div>
+  <div class=stage><button class="nav prev" data-act=prev title="Previous (←)">‹</button><div class=pic><img alt=""></div><div id=map></div><button class="nav next" data-act=next title="Next (→)">›</button></div>
   <div class=info><div class=meta></div><h2></h2><p class=desc></p><p class=prompt></p><p class=note></p></div>
 </div>
 """
@@ -89,7 +94,33 @@ function show(i) {
   view.querySelector('.note').textContent = ps[2] ? ps[2].textContent : '';
   view.querySelector('.pos').textContent = `${cur + 1} / ${list.length}`;
   view.classList.add('open'); document.body.style.overflow = 'hidden';
+  showMap(parseFloat(a.dataset.lat), parseFloat(a.dataset.lon), a.querySelector('h2').textContent);
   history.replaceState(null, '', '#' + (cur + 1));
+}
+const LEAFLET = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/';
+let leaflet = null, map = null, marker = null;
+function loadLeaflet() {
+  if (leaflet) return leaflet;
+  leaflet = new Promise((ok, fail) => {
+    const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = LEAFLET + 'leaflet.min.css'; document.head.append(css);
+    const js = document.createElement('script'); js.src = LEAFLET + 'leaflet.min.js'; js.onload = ok; js.onerror = fail; document.head.append(js);
+  });
+  return leaflet;
+}
+function showMap(lat, lon, label) {
+  const el = document.getElementById('map');
+  if (isNaN(lat) || isNaN(lon)) { el.textContent = 'no location'; return; }
+  loadLeaflet().then(() => {
+    if (!map) {
+      el.textContent = '';
+      map = L.map(el, { zoomControl: true, attributionControl: true });
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+      marker = L.marker([lat, lon]).addTo(map);
+    }
+    marker.setLatLng([lat, lon]).bindPopup(label);
+    map.setView([lat, lon], 15);
+    setTimeout(() => map.invalidateSize(), 50);
+  }).catch(() => { el.textContent = `${lat.toFixed(5)}, ${lon.toFixed(5)} (map unavailable offline)`; });
 }
 function close() { view.classList.remove('open', 'full'); document.body.style.overflow = ''; history.replaceState(null, '', location.pathname); }
 document.querySelectorAll('article a').forEach((a, i) => a.addEventListener('click', ev => { ev.preventDefault(); show(i); }));
@@ -98,7 +129,7 @@ view.addEventListener('click', ev => {
   if (act === 'close') close();
   else if (act === 'prev') show(cur - 1);
   else if (act === 'next') show(cur + 1);
-  else if (act === 'full') view.classList.toggle('full');
+  else if (act === 'full') { view.classList.toggle('full'); if (map) setTimeout(() => map.invalidateSize(), 50); }
   else if (ev.target.tagName === 'IMG' && view.classList.contains('full')) view.classList.remove('full');
 });
 document.addEventListener('keydown', ev => {
@@ -106,7 +137,7 @@ document.addEventListener('keydown', ev => {
   if (ev.key === 'Escape') close();
   else if (ev.key === 'ArrowLeft') show(cur - 1);
   else if (ev.key === 'ArrowRight') show(cur + 1);
-  else if (ev.key.toLowerCase() === 'f') view.classList.toggle('full');
+  else if (ev.key.toLowerCase() === 'f') { view.classList.toggle('full'); if (map) setTimeout(() => map.invalidateSize(), 50); }
 });
 const hash = parseInt(location.hash.slice(1), 10);
 if (hash > 0) show(hash - 1);
@@ -165,7 +196,7 @@ def _card(r: Record, image_base: str) -> str:
     revised = f"<p class=prompt><b>Model note</b> {escape(r.revised_prompt)}</p>" if r.revised_prompt else ""
     src = escape(image_base + r.image)
     return f"""
-<article data-style="{escape(r.style)}">
+<article data-style="{escape(r.style)}" data-lat="{r.lat}" data-lon="{r.lon}">
   <a href="{src}"><img src="{src}" alt="{escape(r.address)} in {escape(r.style)} style" loading="lazy"></a>
   <div class=meta><span class=style>{escape(r.style)}</span><span class=when>{escape(when)}</span><span class=how>{escape(how)}</span></div>
   <h2>{escape(r.address)}</h2>
