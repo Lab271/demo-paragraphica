@@ -2,7 +2,7 @@
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install lock lint format test coverage ci env-check run dry-run streamlit clean
+.PHONY: help install lock lint format test coverage ci env-check run dry-run history gallery streamlit clean
 
 help: ## Show this help
 	@echo ""
@@ -51,11 +51,17 @@ OP ?= op run --env-file=op.env --
 env-check: ## Show which 1Password items in op.env resolve (prints no values)
 	tools/op-env.sh --check
 
-run: ## Generate one image into output/output.{png,jpg}: make run LOCATION="Amsterdam" STYLE="film noir"
+run: ## Generate one image into the history store (output/): make run LOCATION="Amsterdam" STYLE="film noir"
 	$(OP) uv run terra generate --location "$(LOCATION)" --style "$(STYLE)" --backend "$(BACKEND)"
 
 dry-run: ## Description + prompt only, no image call
 	$(OP) uv run terra generate --location "$(LOCATION)" --style "$(STYLE)" --backend "$(BACKEND)" --dry-run
+
+history: ## Recent generations from output/history.jsonl
+	uv run terra history
+
+gallery: ## Rebuild output/index.html and open it
+	uv run terra gallery --open
 
 streamlit: ## Legacy Streamlit UI (removed in #10)
 	$(OP) uv run --extra streamlit streamlit run terra_virtualis.py

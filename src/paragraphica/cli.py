@@ -5,13 +5,14 @@ from typing import Annotated
 
 import typer
 
-from paragraphica import api, core, prompts
+from paragraphica import api, core, gallery, prompts
 from paragraphica import backend as backends
+from paragraphica.store import Store
 
 app = typer.Typer(no_args_is_help=True, help="Terra Virtualis: imagine the view at a location.")
 
 DEFAULT_LATLON = (52.274972, 4.750813)  # Schuberg Philis, Schiphol-Rijk
-EXTENSIONS = {"image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp"}
+OUT_DIR = Path("output")
 
 
 def _choice(name: str, value: str, options: dict) -> None:
@@ -34,9 +35,9 @@ def generate(
     weather: Annotated[bool, typer.Option(help="Include current weather")] = False,
     time: Annotated[bool, typer.Option(help="Include local time of day")] = True,
     dry_run: Annotated[bool, typer.Option("--dry-run", help="Print description + prompt, make no image call")] = False,
-    out: Annotated[Path, typer.Option("--out", "-o", help="Output image; suffix follows the returned format")] = Path(
-        "output/output"
-    ),
+    out_dir: Annotated[
+        Path, typer.Option("--out-dir", "-o", help="History store: images + history.jsonl + index.html")
+    ] = OUT_DIR,
 ) -> None:
     """Generate one image for a location."""
     _choice("style", style, prompts.STYLES)
@@ -57,7 +58,8 @@ def generate(
         include_weather=weather,
         quality=quality,
     )
-    result = core.generate(req, backends.make_backend(backend), dry_run=dry_run)
+    model = backends.make_backend(backend)
+    result = core.generate(req, model, dry_run=dry_run)
 
     typer.echo(f"Backend:     {backend}")
     typer.echo(f"Location:    {result.context.address} ({lat:.6f}, {lon:.6f})")
@@ -69,12 +71,51 @@ def generate(
     typer.echo(f"Prompt:      {result.prompt}")
     if dry_run:
         return
-    out = out.with_suffix(EXTENSIONS.get(result.mime_type, ".bin"))
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_bytes(result.image or b"")
+    store = Store(out_dir)
+    rec = store.save(
+        req,
+        result,
+        backend=backend,
+        text_model=getattr(model, "text_model", ""),
+        image_model=getattr(model, "image_model", ""),
+        location=location or "",
+    )
+    _write_gallery(store)
     if result.revised_prompt:
         typer.echo(f"Revised:     {result.revised_prompt}")
-    typer.echo(f"Image:       {out}")
+    typer.echo(f"Image:       {store.root / rec.image}  ({rec.duration_s:g}s)")
+
+
+def _write_gallery(store: Store) -> Path:
+    page = store.root / "index.html"
+    page.write_text(gallery.render(store.records()), encoding="utf-8")
+    return page
+
+
+@app.command()
+def history(
+    last: Annotated[int, typer.Option("--last", "-n", help="Show the most recent N runs")] = 20,
+    out_dir: Annotated[Path, typer.Option("--out-dir", "-o")] = OUT_DIR,
+) -> None:
+    """List recent generations from the history store."""
+    recs = Store(out_dir).records()
+    if not recs:
+        typer.echo(f"no history in {out_dir}")
+        return
+    for r in recs[-last:]:
+        typer.echo(f"{r.timestamp[:16].replace('T', ' ')}  {r.style:14} {r.address:40.40} {r.image}")
+
+
+@app.command("gallery")
+def gallery_cmd(
+    out_dir: Annotated[Path, typer.Option("--out-dir", "-o")] = OUT_DIR,
+    open_: Annotated[bool, typer.Option("--open", help="Open the page in the default browser")] = False,
+) -> None:
+    """(Re)build output/index.html, the static gallery over the history store."""
+    page = _write_gallery(Store(out_dir))
+    typer.echo(f"Gallery:     {page}")
+    if open_:
+        typer.launch(str(page.resolve()))
 
 
 @app.command()

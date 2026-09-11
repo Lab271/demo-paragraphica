@@ -36,15 +36,30 @@ def test_dry_run_prints_prompt_without_image(monkeypatch):
     assert "Image:" not in result.output
 
 
-def test_generate_writes_png(monkeypatch, tmp_path):
+def test_generate_stores_image_history_and_gallery(monkeypatch, tmp_path):
     _offline(monkeypatch)
-    out = tmp_path / "x.png"
-    result = runner.invoke(cli.app, ["generate", "--lat", "52.09", "--lon", "5.12", "--out", str(out)])
+    result = runner.invoke(cli.app, ["generate", "--lat", "52.09", "--lon", "5.12", "--out-dir", str(tmp_path)])
     assert result.exit_code == 0, result.output
-    # suffix follows the format the model returned, not the one requested
-    assert (tmp_path / "x.jpg").read_bytes() == b"JPG"
-    assert "Image:" in result.output and "x.jpg" in result.output
+    images = sorted(tmp_path.glob("*-utrecht-realistic.jpg"))  # suffix follows the returned format
+    assert len(images) == 1 and images[0].read_bytes() == b"JPG"
+    assert "Image:" in result.output and images[0].name in result.output
+    assert (tmp_path / "history.jsonl").read_text().count("\n") == 1
+    assert "Utrecht, Netherlands" in (tmp_path / "index.html").read_text()
     assert FakeBackend.image_calls == 1
+
+
+def test_history_and_gallery_commands(monkeypatch, tmp_path):
+    _offline(monkeypatch)
+    assert runner.invoke(cli.app, ["history", "--out-dir", str(tmp_path)]).output.startswith("no history")
+    for style in ("lego", "polaroid"):
+        runner.invoke(
+            cli.app, ["generate", "--lat", "52.09", "--lon", "5.12", "--style", style, "--out-dir", str(tmp_path)]
+        )
+    out = runner.invoke(cli.app, ["history", "--out-dir", str(tmp_path), "--last", "1"]).output
+    assert "polaroid" in out and "lego" not in out
+    result = runner.invoke(cli.app, ["gallery", "--out-dir", str(tmp_path)])
+    assert result.exit_code == 0 and "index.html" in result.output
+    assert (tmp_path / "index.html").read_text().count("<article") == 2
 
 
 def test_unknown_style_is_rejected():
