@@ -16,7 +16,7 @@ class FakeBackend:
 
     def image(self, prompt, quality, size):
         FakeBackend.image_calls += 1
-        return Generated(image=b"PNG")
+        return Generated(image=b"JPG", mime_type="image/jpeg")
 
 
 def _offline(monkeypatch):
@@ -41,7 +41,9 @@ def test_generate_writes_png(monkeypatch, tmp_path):
     out = tmp_path / "x.png"
     result = runner.invoke(cli.app, ["generate", "--lat", "52.09", "--lon", "5.12", "--out", str(out)])
     assert result.exit_code == 0, result.output
-    assert out.read_bytes() == b"PNG"
+    # suffix follows the format the model returned, not the one requested
+    assert (tmp_path / "x.jpg").read_bytes() == b"JPG"
+    assert "Image:" in result.output and "x.jpg" in result.output
     assert FakeBackend.image_calls == 1
 
 

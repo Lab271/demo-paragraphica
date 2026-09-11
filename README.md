@@ -13,7 +13,7 @@ To get started (needs [mise](https://mise.jdx.dev/), which pins Python and uv):
 Then, for the developer loop:
 ```
     make dry-run LOCATION="Amsterdam" STYLE="film noir"   # description + prompt only, no image call
-    make run LOCATION="Amsterdam" STYLE="film noir"       # writes output/output.png
+    make run LOCATION="Amsterdam" STYLE="film noir"       # writes output/output.jpg (or .png)
     uv run terra options                                  # list styles, contexts, positions
     make env-check && op run --env-file=op.env -- uv run terra models   # Gemini models your key can call
 ```

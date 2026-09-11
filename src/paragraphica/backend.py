@@ -24,6 +24,7 @@ DEFAULT_MODELS = {
 class Generated:
     image: bytes
     revised_prompt: str | None = None
+    mime_type: str = "image/png"
 
 
 class Backend(Protocol):
@@ -45,8 +46,8 @@ class GeminiBackend:
         return api.call_gemini_text(self.text_model, messages)
 
     def image(self, prompt: str, quality: str, size: str) -> Generated:
-        text, data = api.call_gemini_image(prompt, self.image_model, quality, size)
-        return Generated(image=data, revised_prompt=text)
+        text, data, mime = api.call_gemini_image(prompt, self.image_model, quality, size)
+        return Generated(image=data, revised_prompt=text, mime_type=mime)
 
 
 BACKENDS: dict[str, type] = {"gemini": GeminiBackend}

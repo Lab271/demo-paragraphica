@@ -11,6 +11,7 @@ from paragraphica import backend as backends
 app = typer.Typer(no_args_is_help=True, help="Terra Virtualis: imagine the view at a location.")
 
 DEFAULT_LATLON = (52.274972, 4.750813)  # Schuberg Philis, Schiphol-Rijk
+EXTENSIONS = {"image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp"}
 
 
 def _choice(name: str, value: str, options: dict) -> None:
@@ -33,7 +34,9 @@ def generate(
     weather: Annotated[bool, typer.Option(help="Include current weather")] = False,
     time: Annotated[bool, typer.Option(help="Include local time of day")] = True,
     dry_run: Annotated[bool, typer.Option("--dry-run", help="Print description + prompt, make no image call")] = False,
-    out: Annotated[Path, typer.Option("--out", "-o", help="Output PNG")] = Path("output/output.png"),
+    out: Annotated[Path, typer.Option("--out", "-o", help="Output image; suffix follows the returned format")] = Path(
+        "output/output"
+    ),
 ) -> None:
     """Generate one image for a location."""
     _choice("style", style, prompts.STYLES)
@@ -66,6 +69,7 @@ def generate(
     typer.echo(f"Prompt:      {result.prompt}")
     if dry_run:
         return
+    out = out.with_suffix(EXTENSIONS.get(result.mime_type, ".bin"))
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(result.image or b"")
     if result.revised_prompt:

@@ -163,3 +163,5 @@ cython_debug/
 .venv/
 .mise.local.toml
 output/*.png
+output/*.jpg
+output/*.webp

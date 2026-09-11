@@ -60,9 +60,10 @@ def call_gemini_text(model: str, messages: list[dict], max_tokens: int = 400, te
     return res.text or ""
 
 
-def call_gemini_image(prompt: str, model: str, quality: str, size: str) -> tuple[str | None, bytes]:
+def call_gemini_image(prompt: str, model: str, quality: str, size: str) -> tuple[str | None, bytes, str]:
     """Image via generate_content (Imagen endpoints were shut down Aug 2026).
-    Returns (accompanying text if any, PNG/JPEG bytes)."""
+    Returns (accompanying text if any, image bytes, mime type). The Developer API
+    picks the format itself (JPEG in practice); output_mime_type is Vertex-only."""
     from google import genai
     from google.genai import types
 
@@ -78,15 +79,16 @@ def call_gemini_image(prompt: str, model: str, quality: str, size: str) -> tuple
             ),
         ),
     )
-    text, image = None, None
+    text, image, mime = None, None, "image/png"
     for part in res.candidates[0].content.parts:
         if part.inline_data is not None and image is None:
             image = part.inline_data.data
+            mime = part.inline_data.mime_type or mime
         elif part.text:
             text = (text or "") + part.text
     if image is None:
         raise RuntimeError(f"Gemini returned no image for model {model!r}: {text!r}")
-    return text, image
+    return text, image, mime
 
 
 def list_gemini_models() -> list[tuple[str, str]]:

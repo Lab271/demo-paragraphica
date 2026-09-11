@@ -26,12 +26,12 @@ def test_gemini_backend_maps_calls(monkeypatch):
     monkeypatch.setattr(
         api, "call_gemini_text", lambda model, messages: seen.setdefault("text", (model, messages)) and "desc"
     )
-    monkeypatch.setattr(api, "call_gemini_image", lambda prompt, model, quality, size: ("note", b"PNG"))
+    monkeypatch.setattr(api, "call_gemini_image", lambda prompt, model, quality, size: ("note", b"JPG", "image/jpeg"))
     b = backend.GeminiBackend(text_model="t", image_model="i")
     assert b.describe([{"role": "user", "content": "x"}]) == "desc"
     assert seen["text"][0] == "t"
     gen = b.image("p", "high", "1024x1024")
-    assert gen == backend.Generated(image=b"PNG", revised_prompt="note")
+    assert gen == backend.Generated(image=b"JPG", revised_prompt="note", mime_type="image/jpeg")
 
 
 @pytest.mark.parametrize("quality,expected", [("low", "1K"), ("medium", "1K"), ("high", "2K"), ("weird", "1K")])

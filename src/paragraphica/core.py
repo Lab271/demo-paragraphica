@@ -28,6 +28,7 @@ class Result:
     prompt: str
     image: bytes | None = None
     revised_prompt: str | None = None
+    mime_type: str = "image/png"
 
 
 def generate(req: Request, backend: Backend, *, dry_run: bool = False, context: Context | None = None) -> Result:
@@ -40,5 +41,10 @@ def generate(req: Request, backend: Backend, *, dry_run: bool = False, context: 
         return Result(context=ctx, description=description, prompt=prompt)
     gen = backend.image(prompt, req.quality, req.size)
     return Result(
-        context=ctx, description=description, prompt=prompt, image=gen.image, revised_prompt=gen.revised_prompt
+        context=ctx,
+        description=description,
+        prompt=prompt,
+        image=gen.image,
+        revised_prompt=gen.revised_prompt,
+        mime_type=gen.mime_type,
     )
