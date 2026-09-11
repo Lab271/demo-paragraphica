@@ -42,3 +42,40 @@ def test_gemini_quality_mapping(quality, expected):
 def test_gemini_aspect_mapping():
     assert api.GEMINI_ASPECT["1536x1024"] == "3:2"
     assert api.GEMINI_ASPECT.get("777x777", "1:1") == "1:1"
+
+
+class _Http(Exception):
+    def __init__(self, code):
+        super().__init__(f"http {code}")
+        self.code = code
+
+
+def test_with_retry_retries_once_on_5xx(monkeypatch):
+    monkeypatch.setattr(backend.time, "sleep", lambda s: None)
+    calls = []
+
+    def flaky():
+        calls.append(1)
+        if len(calls) == 1:
+            raise _Http(503)
+        return "ok"
+
+    assert backend.with_retry(flaky) == "ok" and len(calls) == 2
+
+
+def test_with_retry_gives_up_and_wraps(monkeypatch):
+    monkeypatch.setattr(backend.time, "sleep", lambda s: None)
+    with pytest.raises(backend.TransientError):
+        backend.with_retry(lambda: (_ for _ in ()).throw(_Http(504)))
+
+
+def test_with_retry_does_not_retry_4xx(monkeypatch):
+    calls = []
+
+    def bad():
+        calls.append(1)
+        raise _Http(404)
+
+    with pytest.raises(_Http):
+        backend.with_retry(bad)
+    assert len(calls) == 1

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Terra Virtualis service on the Mac Mini. Installed by `make service-install`,
+  which fills in __REPO__ and __HOME__. Runs as a LaunchAgent of the logged-in
+  user so `op run` can reach the unlocked 1Password app; for a headless box set
+  OP_SERVICE_ACCOUNT_TOKEN in EnvironmentVariables instead (see README).
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>io.lab271.terra</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-lc</string>
+    <string>cd __REPO__ &amp;&amp; op run --env-file=op.env -- uv run terra serve</string>
+  </array>
+  <key>WorkingDirectory</key><string>__REPO__</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>HOME</key><string>__HOME__</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>ThrottleInterval</key><integer>10</integer>
+  <key>StandardOutPath</key><string>__HOME__/Library/Logs/terra.log</string>
+  <key>StandardErrorPath</key><string>__HOME__/Library/Logs/terra.log</string>
+</dict>
+</plist>
