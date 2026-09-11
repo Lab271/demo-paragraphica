@@ -31,6 +31,10 @@ LOOKS = {
         "light leaks and a warm vintage tint."
     ),
     "film noir": "Low-key black and white, hard shadows, wet streets reflecting a few lights, 1940s film noir.",
+    "frank miller": (
+        "Graphic novel ink in the manner of Frank Miller's Sin City: stark high-contrast black and white, heavy "
+        "solid blacks, figures as white silhouettes, rain as white streaks, one object in blood red."
+    ),
     "impressionist": "Oil on canvas in the manner of 1880s impressionism: visible brushstrokes, broken colour, soft edges.",
     "woodblock": "Japanese ukiyo-e woodblock print: flat colour areas, bold outlines, stylised clouds and water.",
     "blueprint": "Architectural blueprint: white line drawing on cyan paper, measurements, annotations, grid.",
