@@ -135,3 +135,14 @@ def models(
     for name, acts in api.list_gemini_models():
         if filter in name:
             typer.echo(f"{name:45} {acts}")
+
+
+@app.command()
+def serve(
+    host: Annotated[str, typer.Option(help="Bind address; 0.0.0.0 for the LAN")] = "0.0.0.0",
+    port: Annotated[int, typer.Option()] = 8471,
+) -> None:
+    """Run the HTTP service (gallery at /, API at /generate, /history, /styles...)."""
+    from paragraphica import service
+
+    service.run(host=host, port=port)

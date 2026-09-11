@@ -2,7 +2,7 @@
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install lock lint format test coverage ci env-check run dry-run history gallery streamlit clean
+.PHONY: help install lock lint format test coverage ci env-check run dry-run history gallery serve service-install service-uninstall streamlit clean
 
 help: ## Show this help
 	@echo ""
@@ -15,7 +15,7 @@ help: ## Show this help
 # === Setup ===
 
 install: ## Create .venv (Python from .python-version) and install everything from uv.lock
-	uv sync --locked --all-groups
+	uv sync --locked --all-groups --all-extras
 
 lock: ## Re-resolve dependencies and rewrite uv.lock
 	uv lock
@@ -62,6 +62,20 @@ history: ## Recent generations from output/history.jsonl
 
 gallery: ## Rebuild output/index.html and open it
 	uv run terra gallery --open
+
+serve: ## Run the HTTP service on :8471 (gallery at /, API for the Pi client)
+	$(OP) uv run --extra service terra serve
+
+PLIST = io.lab271.terra.plist
+service-install: ## Install + start the launchd agent on this Mac (Mac Mini)
+	sed -e "s|__REPO__|$(CURDIR)|g" -e "s|__HOME__|$(HOME)|g" deploy/launchd/$(PLIST) > $(HOME)/Library/LaunchAgents/$(PLIST)
+	launchctl bootout gui/$$(id -u)/io.lab271.terra 2>/dev/null || true
+	launchctl bootstrap gui/$$(id -u) $(HOME)/Library/LaunchAgents/$(PLIST)
+	@echo "started; logs: $(HOME)/Library/Logs/terra.log  health: curl localhost:8471/healthz"
+
+service-uninstall: ## Stop + remove the launchd agent
+	launchctl bootout gui/$$(id -u)/io.lab271.terra 2>/dev/null || true
+	rm -f $(HOME)/Library/LaunchAgents/$(PLIST)
 
 streamlit: ## Legacy Streamlit UI (removed in #10)
 	$(OP) uv run --extra streamlit streamlit run terra_virtualis.py

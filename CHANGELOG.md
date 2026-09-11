@@ -2,6 +2,19 @@
 
 All notable changes to Terra Virtualis (demo-paragraphica). Format: [Keep a Changelog](https://keepachangelog.com/), versions follow SemVer.
 
+## [0.4.0] - 2026-09-11
+
+HTTP service and interactive gallery (#9, part of #16).
+
+### Added
+- FastAPI service: `POST /generate`, `GET /history`, `/styles`, `/contexts`, `/positions`, `/images/{name}`, gallery at `/`, `/healthz`. `terra serve`, `make serve`, `service` extra.
+- launchd agent for the Mac Mini: `deploy/launchd/io.lab271.terra.plist`, `make service-install` / `service-uninstall`.
+- One automatic retry on a provider 5xx (`backend.with_retry`); the service answers 503 if the retry fails too.
+- Gallery: generate form on the served page; detail overlay with large image, ←/→ navigation, Full mode, record below, `#n` deep links.
+
+### Fixed
+- Served gallery linked images relative to `/`; now under `/images/`.
+
 ## [0.3.0] - 2026-09-11
 
 History store and static gallery (#7).

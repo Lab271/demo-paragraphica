@@ -42,6 +42,23 @@ def test_render_cards_newest_first_and_escaped():
     assert "gemini-3.1-flash-image · 20.5s" in html
 
 
+def test_image_base_prefixes_paths():
+    assert 'src="a.jpg"' in render([rec()])
+    assert 'src="/images/a.jpg"' in render([rec()], image_base="/images/")
+
+
+def test_viewer_present_with_navigation():
+    html = render([rec()])
+    assert "id=view" in html and "data-act=prev" in html and "data-act=next" in html and "data-act=full" in html
+    assert "ArrowLeft" in html and "Escape" in html and "location.hash" in html
+
+
+def test_controls_only_when_asked():
+    assert "<form id=gen" not in render([rec()])
+    html = render([rec()], controls=True)
+    assert "<form id=gen" in html and 'data-src="/styles"' in html and "fetch('/generate'" in html
+
+
 def test_revised_prompt_shown_when_present():
     assert "Model note" not in render([rec()])
     assert "Model note</b> caption" in render([rec(revised_prompt="caption")])

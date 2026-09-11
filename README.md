@@ -21,6 +21,29 @@ Then, for the developer loop:
 ```
 `make help` lists everything. The Streamlit UI is legacy (`make streamlit`, removed in #10). See `docs/plan-2026-09.md` for the rebuild plan.
 
+## Service
+
+`make serve` runs the HTTP service on port 8471 with the keys injected by 1Password.
+The gallery is at `/`, the API is what the Pi client (#10) talks to:
+
+```
+    curl -s localhost:8471/healthz
+    curl -s localhost:8471/styles                     # also /contexts /positions
+    curl -s -X POST localhost:8471/generate -H 'content-type: application/json' \
+         -d '{"location":"Amsterdam","style":"film noir"}'      # 10-25 s; returns the record + image_url
+    curl -s 'localhost:8471/history?last=5'
+    curl -sO localhost:8471/images/<name from image_url>
+```
+
+Transient 503/504 from Gemini are retried once inside the backend; if the retry
+fails too the service answers 503 and the client may try again.
+
+On the Mac Mini, `make service-install` installs a launchd agent
+(`deploy/launchd/io.lab271.terra.plist`) that starts at login and restarts on
+failure; `make service-uninstall` removes it. It runs `op run`, so the 1Password
+app must be unlocked for that user; for a headless box put an
+`OP_SERVICE_ACCOUNT_TOKEN` in the plist's `EnvironmentVariables` instead.
+
 ## API keys
 
 Keys live in the 1Password **Labs** vault and never in a file. `op.env` holds the
