@@ -38,6 +38,10 @@ LOOKS = {
     "impressionist": "Oil on canvas in the manner of 1880s impressionism: visible brushstrokes, broken colour, soft edges.",
     "woodblock": "Japanese ukiyo-e woodblock print: flat colour areas, bold outlines, stylised clouds and water.",
     "blueprint": "Architectural blueprint: white line drawing on cyan paper, measurements, annotations, grid.",
+    "elevation": (
+        "Architectural elevation drawing: flat two-dimensional orthographic view straight from the side, no "
+        "perspective, no depth, thin black outlines, flat pastel fills, white background, small figures for scale."
+    ),
     "isometric": "Clean 3D isometric illustration with characteristic landmarks, tilt-shift miniature feel.",
     "lego": "Built entirely from Lego bricks, minifigures for people, presented as a photographed set.",
     "coloring page": "Black line art on white for a colouring book: bold clean outlines, no shading, no colour.",
