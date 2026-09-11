@@ -11,10 +11,6 @@ def test_default_backend_is_gemini(monkeypatch):
     assert (b.text_model, b.image_model) == ("gemini-3.1-flash", "gemini-3.1-flash-image")
 
 
-def test_openai_backend_selectable():
-    assert isinstance(backend.make_backend("openai"), backend.OpenAIBackend)
-
-
 def test_unknown_backend():
     with pytest.raises(ValueError, match="unknown backend"):
         backend.make_backend("midjourney")

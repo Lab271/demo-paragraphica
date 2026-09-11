@@ -1,7 +1,7 @@
 """Model backends. A backend is the only thing in the pipeline that talks to a
 model; everything upstream is strings and dataclasses.
 
-Select with PARA_BACKEND=gemini|openai (default gemini). Model ids can be
+Select with PARA_BACKEND (only "gemini" today; "local" arrives in #8). Model ids can be
 overridden with PARA_TEXT_MODEL / PARA_IMAGE_MODEL."""
 
 import os
@@ -14,7 +14,6 @@ DEFAULT_BACKEND = os.environ.get("PARA_BACKEND", "gemini")
 
 DEFAULT_MODELS = {
     "gemini": ("gemini-3.1-flash", "gemini-3.1-flash-image"),
-    "openai": ("gpt-5-mini", "gpt-image-2"),
 }
 
 
@@ -47,20 +46,7 @@ class GeminiBackend:
         return Generated(image=data, revised_prompt=text)
 
 
-@dataclass
-class OpenAIBackend:
-    text_model: str = field(default_factory=lambda: _model("PARA_TEXT_MODEL", DEFAULT_MODELS["openai"][0]))
-    image_model: str = field(default_factory=lambda: _model("PARA_IMAGE_MODEL", DEFAULT_MODELS["openai"][1]))
-
-    def describe(self, messages: list[dict]) -> str:
-        return api.call_gpt(self.text_model, messages)
-
-    def image(self, prompt: str, quality: str, size: str) -> Generated:
-        revised, data = api.call_image(prompt, self.image_model, quality, size)
-        return Generated(image=data, revised_prompt=revised)
-
-
-BACKENDS: dict[str, type] = {"gemini": GeminiBackend, "openai": OpenAIBackend}
+BACKENDS: dict[str, type] = {"gemini": GeminiBackend}
 
 
 def make_backend(name: str = DEFAULT_BACKEND) -> Backend:

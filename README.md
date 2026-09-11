@@ -28,8 +28,7 @@ resolve without printing values.
 
 | Variable | 1Password item (field `paragraphica`) | Used by |
 |---|---|---|
-| `GEMINI_API_KEY` | `Gemini` | default backend (`PARA_BACKEND=gemini`) |
-| `OPENAI_API_KEY` | `openai.com` | `--backend openai` |
+| `GEMINI_API_KEY` | `Gemini` | text + image generation |
 | `PARA_MAPBOX_API` | `Mapbox` | geocoding |
 | `PARA_OPENWEATHERMAP_API` | `Openweathermap` | `--weather` |
 
@@ -40,8 +39,8 @@ are billed per image. Store it as item `Gemini`, field `paragraphica`, in the
 Labs vault so both `op.env` and the Ansible role find it. Model docs:
 https://ai.google.dev/gemini-api/docs/image-generation
 
-Override models with `PARA_TEXT_MODEL` / `PARA_IMAGE_MODEL`; switch provider
-with `PARA_BACKEND=openai` or `--backend openai`.
+Override models with `PARA_TEXT_MODEL` / `PARA_IMAGE_MODEL`. A local backend
+(Mac Mini, Ollama + Draw Things) is planned in #8.
 
 ## Todo
 1. [DONE] raspberry pi python setup
@@ -63,4 +62,4 @@ Libraries
 3. open weathermap
 4. geotimezone.com
 5. mapbox api service
-6. openai for ChatGPT and Dall-E
+6. Google Gemini for text and image generation (OpenAI/DALL-E until Sep 2026)

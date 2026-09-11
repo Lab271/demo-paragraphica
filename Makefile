@@ -51,7 +51,7 @@ OP ?= op run --env-file=op.env --
 env-check: ## Show which 1Password items in op.env resolve (prints no values)
 	tools/op-env.sh --check
 
-run: ## Generate one image: make run LOCATION="Amsterdam" STYLE="film noir" BACKEND=openai
+run: ## Generate one image: make run LOCATION="Amsterdam" STYLE="film noir" BACKEND=gemini
 	$(OP) uv run terra generate --location "$(LOCATION)" --style "$(STYLE)" --backend "$(BACKEND)"
 
 dry-run: ## Description + prompt only, no image call

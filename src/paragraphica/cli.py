@@ -28,7 +28,7 @@ def generate(
     position: Annotated[str, typer.Option("--position", "-p")] = "normal",
     quality: Annotated[str, typer.Option(help="low | medium | high")] = "medium",
     backend: Annotated[
-        str, typer.Option("--backend", "-b", help="gemini | openai (PARA_BACKEND)")
+        str, typer.Option("--backend", "-b", help="Model backend (PARA_BACKEND)")
     ] = backends.DEFAULT_BACKEND,
     weather: Annotated[bool, typer.Option(help="Include current weather")] = False,
     time: Annotated[bool, typer.Option(help="Include local time of day")] = True,
