@@ -7,6 +7,7 @@ import typer
 
 from paragraphica import api, core, gallery, prompts
 from paragraphica import backend as backends
+from paragraphica import context as ctxmod
 from paragraphica.store import Store
 
 app = typer.Typer(no_args_is_help=True, help="Terra Virtualis: imagine the view at a location.")
@@ -34,6 +35,9 @@ def generate(
     ] = backends.DEFAULT_BACKEND,
     weather: Annotated[bool, typer.Option(help="Include current weather")] = False,
     time: Annotated[bool, typer.Option(help="Include local time of day")] = True,
+    time_of_day: Annotated[
+        str | None, typer.Option("--time-of-day", help="Override the clock: " + " | ".join(ctxmod.TIMES_OF_DAY))
+    ] = None,
     dry_run: Annotated[bool, typer.Option("--dry-run", help="Print description + prompt, make no image call")] = False,
     out_dir: Annotated[
         Path, typer.Option("--out-dir", "-o", help="History store: images + history.jsonl + index.html")
@@ -44,6 +48,8 @@ def generate(
     _choice("context", context, prompts.CONTEXTS)
     _choice("position", position, prompts.POSITIONS)
     _choice("backend", backend, backends.BACKENDS)
+    if time_of_day is not None:
+        _choice("time-of-day", time_of_day, dict.fromkeys(ctxmod.TIMES_OF_DAY))
 
     if lat is None or lon is None:
         lat, lon = api.call_mapbox_forward(location) if location else DEFAULT_LATLON
@@ -57,6 +63,7 @@ def generate(
         include_time=time,
         include_weather=weather,
         quality=quality,
+        time_of_day=time_of_day,
     )
     model = backends.make_backend(backend)
     result = core.generate(req, model, dry_run=dry_run)

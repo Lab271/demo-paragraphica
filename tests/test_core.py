@@ -33,3 +33,13 @@ def test_full_run_returns_image_and_revised_prompt():
     assert backend.image_calls == 1
     assert result.image == b"PNG"
     assert result.revised_prompt == f"revised: {result.prompt}"
+
+
+def test_time_of_day_override_skips_clock(monkeypatch):
+    from paragraphica import core
+
+    calls = []
+    monkeypatch.setattr(core, "build_context", lambda lat, lon, t, w: calls.append(t) or Context(address="Utrecht"))
+    result = generate(Request(lat=1, lon=1, time_of_day="dark night"), FakeBackend(), dry_run=True)
+    assert calls == [False]  # clock not consulted
+    assert result.context.time_of_day == "dark night"

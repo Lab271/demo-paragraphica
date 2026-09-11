@@ -46,6 +46,7 @@ article img { cursor:zoom-in; }
 #view.full .bar, #view.full .info { display:none; }
 #view.full .stage img { max-height:100vh; }
 form#gen { display:flex; flex-wrap:wrap; gap:.6rem; align-items:center; padding:1rem 1.5rem; background:var(--card); border-bottom:1px solid #2a2a2a; }
+form#gen label { color:var(--muted); font-size:.9rem; display:flex; gap:.3rem; align-items:center; }
 form#gen input, form#gen select { background:var(--bg); color:var(--fg); border:1px solid #333; padding:.45rem .6rem; border-radius:6px; font:inherit; }
 form#gen input[name=location] { flex:1 1 14rem; min-width:10rem; }
 form#gen button { background:var(--accent); color:#111; font-weight:600; border:0; padding:.5rem 1rem; border-radius:6px; cursor:pointer; font:inherit; }
@@ -118,6 +119,8 @@ CONTROLS = """
   <select name=context data-src="/contexts"></select>
   <select name=position data-src="/positions"></select>
   <select name=quality><option>low</option><option selected>medium</option><option>high</option></select>
+  <select name=time_of_day data-src="/times" data-first="now (local time)"></select>
+  <label><input type=checkbox name=include_weather> weather</label>
   <button type=submit>Generate</button>
   <span id=status></span>
 </form>
@@ -129,13 +132,16 @@ const status = document.getElementById('status');
 const btn = form.querySelector('button');
 for (const sel of form.querySelectorAll('select[data-src]')) {
   fetch(sel.dataset.src).then(r => r.json()).then(opts => {
-    for (const k of Object.keys(opts)) { const o = document.createElement('option'); o.textContent = k; sel.append(o); }
+    if (sel.dataset.first) { const o = document.createElement('option'); o.value = ''; o.textContent = sel.dataset.first; sel.append(o); }
+    for (const k of Array.isArray(opts) ? opts : Object.keys(opts)) { const o = document.createElement('option'); o.textContent = k; sel.append(o); }
   });
 }
 let ticker;
 form.addEventListener('submit', async ev => {
   ev.preventDefault();
   const body = Object.fromEntries(new FormData(form));
+  body.include_weather = form.include_weather.checked;
+  if (!body.time_of_day) delete body.time_of_day;
   btn.disabled = true; status.className = ''; const t0 = Date.now();
   ticker = setInterval(() => { status.textContent = `imagining ${body.location}… ${Math.round((Date.now()-t0)/1000)}s`; }, 250);
   try {
@@ -153,7 +159,9 @@ form.addEventListener('submit', async ev => {
 
 def _card(r: Record, image_base: str) -> str:
     when = r.timestamp.replace("T", " ")[:16]
-    how = " · ".join(x for x in (r.position if r.position != "normal" else "", r.context, r.time_of_day) if x)
+    how = " · ".join(
+        x for x in (r.position if r.position != "normal" else "", r.context, r.time_of_day, r.weather) if x
+    )
     revised = f"<p class=prompt><b>Model note</b> {escape(r.revised_prompt)}</p>" if r.revised_prompt else ""
     src = escape(image_base + r.image)
     return f"""

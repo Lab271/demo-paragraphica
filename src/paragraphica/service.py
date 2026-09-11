@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 
 from paragraphica import __version__, api, core, gallery, prompts
 from paragraphica import backend as backends
+from paragraphica.context import TIMES_OF_DAY
 from paragraphica.store import Store
 
 DEFAULT_LATLON = (52.274972, 4.750813)  # Schuberg Philis, Schiphol-Rijk
@@ -30,6 +31,7 @@ class GenerateRequest(BaseModel):
     quality: str = "medium"
     include_time: bool = True
     include_weather: bool = False
+    time_of_day: str | None = Field(None, description="Override the clock; one of GET /times")
 
 
 def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_BACKEND) -> FastAPI:
@@ -56,6 +58,10 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
     def positions() -> dict[str, str]:
         return prompts.POSITIONS
 
+    @app.get("/times")
+    def times() -> list[str]:
+        return list(TIMES_OF_DAY)
+
     @app.get("/history")
     def history(last: Annotated[int, Query(ge=1, le=1000)] = 50) -> list[dict]:
         recs = store.records()[-last:]
@@ -66,6 +72,8 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
         _check("style", req.style, prompts.STYLES)
         _check("context", req.context, prompts.CONTEXTS)
         _check("position", req.position, prompts.POSITIONS)
+        if req.time_of_day:
+            _check("time_of_day", req.time_of_day, dict.fromkeys(TIMES_OF_DAY))
         if req.lat is None or req.lon is None:
             try:
                 lat, lon = api.call_mapbox_forward(req.location) if req.location else DEFAULT_LATLON
@@ -82,6 +90,7 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
             include_time=req.include_time,
             include_weather=req.include_weather,
             quality=req.quality,
+            time_of_day=req.time_of_day or None,
         )
         model = backends.make_backend(backend_name)
         try:

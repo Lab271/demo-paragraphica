@@ -15,6 +15,16 @@ _tf = TimezoneFinder()
 
 WEATHER_TEMPLATE = "The temperature is {} degrees Celsius with {}."
 
+# Every value time_of_day() can produce; also the allowed values for a manual override.
+TIMES_OF_DAY = (
+    "early in the morning",
+    "morning",
+    "afternoon",
+    "early in the evening",
+    "late in the evening",
+    "dark night",
+)
+
 
 @dataclass(frozen=True)
 class Context:

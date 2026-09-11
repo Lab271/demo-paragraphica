@@ -1,7 +1,7 @@
 """Location + Style + Context -> Prompt -> Image. One function, no UI."""
 
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from paragraphica import prompts
 from paragraphica.backend import Backend
@@ -18,6 +18,7 @@ class Request:
     main_prompt: str = prompts.MAIN_PROMPT
     include_time: bool = True
     include_weather: bool = False
+    time_of_day: str | None = None  # override the clock, e.g. 'dark night' for a day/night pair
     quality: str = "medium"
     size: str = "1024x1024"
 
@@ -36,7 +37,9 @@ class Result:
 def generate(req: Request, backend: Backend, *, dry_run: bool = False, context: Context | None = None) -> Result:
     """Run the pipeline. `context` can be injected to skip the geo lookups;
     `dry_run` stops after the prompt and spends no image call."""
-    ctx = context or build_context(req.lat, req.lon, req.include_time, req.include_weather)
+    ctx = context or build_context(req.lat, req.lon, req.include_time and not req.time_of_day, req.include_weather)
+    if req.time_of_day:
+        ctx = replace(ctx, time_of_day=req.time_of_day)
     t0 = time.perf_counter()
     description = backend.describe(prompts.describe_messages(req.context, ctx))
     prompt = prompts.build_prompt(ctx.address, description, req.style, req.position, req.main_prompt)

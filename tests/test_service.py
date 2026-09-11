@@ -77,3 +77,20 @@ def test_transient_model_error_is_503(client, monkeypatch):
     monkeypatch.setattr(FakeBackend, "describe", boom)
     r = client.post("/generate", json={"lat": 52.09, "lon": 5.12})
     assert r.status_code == 503 and "temporarily" in r.json()["detail"]
+
+
+def test_times_and_override(client, monkeypatch):
+    times = client.get("/times").json()
+    assert "dark night" in times
+    seen = {}
+    real = core.generate
+
+    def spy(req, backend, **kw):
+        seen["req"] = req
+        return real(req, backend, **kw)
+
+    monkeypatch.setattr(service.core, "generate", spy)
+    r = client.post("/generate", json={"lat": 52.09, "lon": 5.12, "time_of_day": "dark night", "include_weather": True})
+    assert r.status_code == 200, r.text
+    assert seen["req"].time_of_day == "dark night" and seen["req"].include_weather is True
+    assert client.post("/generate", json={"lat": 1, "lon": 1, "time_of_day": "teatime"}).status_code == 422
