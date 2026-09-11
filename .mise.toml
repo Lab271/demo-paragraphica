@@ -1,0 +1,30 @@
+# mise: https://mise.jdx.dev/
+#
+# Tools are pinned exactly so the laptop, the Mac Mini and the Pi run the
+# same versions. Bump deliberately with `mise up` and read the diff.
+[tools]
+python = "3.12.13"
+uv = "0.12.2"
+
+[env]
+_.file = { path = ".env", optional = true }
+
+[tasks.install]
+description = "Create .venv and install all dependencies from the lockfile"
+run = "uv sync --locked --all-groups"
+
+[tasks.lint]
+description = "ruff check + format --check"
+run = ["uv run ruff check .", "uv run ruff format --check ."]
+
+[tasks.format]
+description = "ruff format + fix"
+run = ["uv run ruff format .", "uv run ruff check --fix ."]
+
+[tasks.test]
+description = "pytest"
+run = "uv run pytest"
+
+[tasks.ci]
+description = "Full local gate"
+depends = ["lint", "test"]

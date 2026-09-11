@@ -1,61 +1,59 @@
-.ONESHELL:
-SHELL := /bin/bash
+# Terra Virtualis (demo-paragraphica)
 
-VIRTUALENV = ./.para
-PACKAGE=paragraphica
-PYTHON = $(VIRTUALENV)/bin/python
-.PHONY: test lint coverage help
+.DEFAULT_GOAL := help
 
-default: clean env test
+.PHONY: help install lock lint format test coverage ci run dry-run streamlit clean
 
-all: $(TARGETS)
-
-clean: ## Clean all build files
-	-@echo y | pip uninstall hack-python
-	@rm -rdf $(PACKAGE).egg*
-	@find . -name *.pyc -delete
-	@rm -rdf build dist
-	@rm -rdf $(VIRTUALENV)
-	@rm -frd .pytest_cache .ruff_cache .coverage
-	@rm -rfd __pycache__
-
-dev:$(VIRTUALENV)/bin/python  ## Install this for development
-	@$(PYTHON) -m pip install --upgrade pip
-	@$(PYTHON) -m pip install -e .
-
-	@$(PYTHON) -m pip install openai
-	@$(PYTHON) -m pip install streamlit
-	@$(PYTHON) -m pip install mapbox
-
-	@$(PYTHON) -m pip install ruff
-	@$(PYTHON) -m pip install pytest
-	@$(PYTHON) -m pip install coverage
-	@$(PYTHON) -m pip install -r requirements.txt
-
-test:  ## Run all tests
-	@pytest
-
-lint: test ## Static code checking
-	@ruff check .
-
-coverage: ## Code coverage
-	@coverage run -m pytest
-	@coverage report -m 
-
-$(VIRTUALENV)/bin/python: # create the local virtualenv
-	virtualenv $(VIRTUALENV)
-	echo "To activate 'source $(VIRTUALENV)/bin/activate'"
-
-count:
-	find . -path $(VIRTUALENV) -prune -o -name '*.py' | xargs wc -l
-
-run:
-	streamlit run terra_virtualis.py
-
-freeze:  ## Freezes pip requirements
-	@echo "# Generated on `date`" >| requirements.txt
-	@$(PYTHON) -m pip freeze | grep -v "$(PACKAGE)" >> requirements.txt
-
-help: ## Shows help screen
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' Makefile | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-16s\033[0m %s\n", $$1, $$2}'
+help: ## Show this help
 	@echo ""
+	@awk 'BEGIN {FS = ":.*?## "} \
+	  /^# === .* ===$$/  { sub(/^# === /, ""); sub(/ ===$$/, ""); printf "\n\033[33m%s\033[0m\n", $$0 } \
+	  /^[a-zA-Z0-9_-]+:.*?## / { printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2 }' \
+	  $(MAKEFILE_LIST)
+	@echo ""
+
+# === Setup ===
+
+install: ## Create .venv and install everything from uv.lock (run `mise install` first for python/uv)
+	uv sync --locked --all-groups
+
+lock: ## Re-resolve dependencies and rewrite uv.lock
+	uv lock
+
+# === Check ===
+
+lint: ## ruff check + format --check
+	uv run ruff check .
+	uv run ruff format --check .
+
+format: ## ruff format + fix
+	uv run ruff format .
+	uv run ruff check --fix .
+
+test: ## Run the test suite (offline; uses recorded fixtures in tests/)
+	uv run pytest
+
+coverage: ## Test suite with coverage report
+	uv run pytest --cov=src/paragraphica --cov-report=term-missing
+
+ci: lint test ## Full local gate
+
+# === Run ===
+
+LOCATION ?= Schiphol-Rijk
+STYLE ?= realistic
+
+run: ## Generate one image: make run LOCATION="Amsterdam" STYLE="film noir"
+	uv run terra generate --location "$(LOCATION)" --style "$(STYLE)"
+
+dry-run: ## Description + prompt only, no image call
+	uv run terra generate --location "$(LOCATION)" --style "$(STYLE)" --dry-run
+
+streamlit: ## Legacy Streamlit UI (removed in #10)
+	uv run --extra streamlit streamlit run terra_virtualis.py
+
+# === Housekeeping ===
+
+clean: ## Remove venv, caches and build output
+	rm -rf .venv .pytest_cache .ruff_cache .coverage build dist *.egg-info
+	find . -name __pycache__ -type d -prune -exec rm -rf {} +

@@ -3,19 +3,22 @@ Our remake of the paragraphica project by [Bjoern Karmann](https://bjoernkarmann
 
 Be sure to set the environ variables first
 
-To get started run
-``` 
+To get started (needs [mise](https://mise.jdx.dev/), which pins Python and uv):
+```
     cd  [this_folder]
-    virtualenv .para
-    source .para/bin/activate 
-    make dev
+    mise install
+    make install
 ```
 
-And to start
+Then, for the developer loop:
 ```
-    make run
+    make dry-run LOCATION="Amsterdam" STYLE="film noir"   # description + prompt only, no image call
+    make run LOCATION="Amsterdam" STYLE="film noir"       # writes output/output.png
+    uv run terra options                                  # list styles, contexts, positions
 ```
-Visual studio code plugins are such that they recognize the virtualenv ./.para immediately. Be sure to have the environment variables available:
+`make help` lists everything. The Streamlit UI is legacy (`make streamlit`, removed in #10). See `docs/plan-2026-09.md` for the rebuild plan.
+
+Be sure to have the environment variables available:
 ```
     export PARA_MAPBOX_API={{ MAPBOX_API }}
     export PARA_OPENWEATHERMAP_API={{ OPENWEATHERMAP_API }}
