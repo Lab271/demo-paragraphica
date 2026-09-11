@@ -8,7 +8,7 @@ def test_default_backend_is_gemini(monkeypatch):
     monkeypatch.delenv("PARA_IMAGE_MODEL", raising=False)
     b = backend.make_backend()
     assert isinstance(b, backend.GeminiBackend)
-    assert (b.text_model, b.image_model) == ("gemini-3.1-flash", "gemini-3.1-flash-image")
+    assert (b.text_model, b.image_model) == ("gemini-3.1-flash-lite", "gemini-3.1-flash-image")
 
 
 def test_unknown_backend():

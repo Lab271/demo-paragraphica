@@ -80,3 +80,13 @@ def options() -> None:
         typer.echo(f"{title}:")
         for key in table:
             typer.echo(f"  {key}")
+
+
+@app.command()
+def models(
+    filter: Annotated[str, typer.Option("--filter", "-f", help="Substring to match")] = "gemini",
+) -> None:
+    """List the Gemini models available to the configured key (needs GEMINI_API_KEY)."""
+    for name, acts in api.list_gemini_models():
+        if filter in name:
+            typer.echo(f"{name:45} {acts}")

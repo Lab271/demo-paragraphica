@@ -14,7 +14,7 @@ help: ## Show this help
 
 # === Setup ===
 
-install: ## Create .venv and install everything from uv.lock (run `mise install` first for python/uv)
+install: ## Create .venv (Python from .python-version) and install everything from uv.lock
 	uv sync --locked --all-groups
 
 lock: ## Re-resolve dependencies and rewrite uv.lock

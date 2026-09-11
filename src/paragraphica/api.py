@@ -87,3 +87,14 @@ def call_gemini_image(prompt: str, model: str, quality: str, size: str) -> tuple
     if image is None:
         raise RuntimeError(f"Gemini returned no image for model {model!r}: {text!r}")
     return text, image
+
+
+def list_gemini_models() -> list[tuple[str, str]]:
+    """(model id, supported generate actions) for every Gemini model the key can call."""
+    from google import genai
+
+    out = []
+    for m in genai.Client().models.list():
+        acts = ",".join(a for a in (m.supported_actions or []) if "generate" in a.lower())
+        out.append(((m.name or "").removeprefix("models/"), acts))
+    return sorted(out)

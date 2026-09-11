@@ -15,6 +15,7 @@ Then, for the developer loop:
     make dry-run LOCATION="Amsterdam" STYLE="film noir"   # description + prompt only, no image call
     make run LOCATION="Amsterdam" STYLE="film noir"       # writes output/output.png
     uv run terra options                                  # list styles, contexts, positions
+    make env-check && op run --env-file=op.env -- uv run terra models   # Gemini models your key can call
 ```
 `make help` lists everything. The Streamlit UI is legacy (`make streamlit`, removed in #10). See `docs/plan-2026-09.md` for the rebuild plan.
 

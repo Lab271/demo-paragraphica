@@ -55,3 +55,14 @@ def test_options_lists_vocabulary():
     result = runner.invoke(cli.app, ["options"])
     assert result.exit_code == 0
     assert "film noir" in result.output and "three highlights" in result.output
+
+
+def test_models_lists_and_filters(monkeypatch):
+    monkeypatch.setattr(
+        cli.api,
+        "list_gemini_models",
+        lambda: [("gemini-3.1-flash-image", "generateContent"), ("veo-3", "generateVideos")],
+    )
+    result = runner.invoke(cli.app, ["models"])
+    assert result.exit_code == 0
+    assert "gemini-3.1-flash-image" in result.output and "veo-3" not in result.output

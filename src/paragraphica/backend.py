@@ -13,7 +13,10 @@ from paragraphica import api
 DEFAULT_BACKEND = os.environ.get("PARA_BACKEND", "gemini")
 
 DEFAULT_MODELS = {
-    "gemini": ("gemini-3.1-flash", "gemini-3.1-flash-image"),
+    # Text: the non-thinking lite model returns a description in ~6 s. The
+    # "gemini-flash-latest" alias timed out under load and 3.5/3.8 flash spend a small
+    # token budget on thinking and return no text (probed 2026-09-11; `terra models`).
+    "gemini": ("gemini-3.1-flash-lite", "gemini-3.1-flash-image"),
 }
 
 
