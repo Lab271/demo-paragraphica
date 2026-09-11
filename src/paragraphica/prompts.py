@@ -16,6 +16,10 @@ STYLES = {
     "isometric": "Show this as a 3D isometric graphic with characteristic landmarks.",
     "coloring page": "Coloring page style, bold lines, black and white.",
     "pop-up": "pop up HAPPY BIRTHDAY greeting card for a rugby fan.",
+    "polaroid": (
+        "Shot on an instant Polaroid camera: square frame with the white border, slightly faded colours, "
+        "soft focus, light leaks and a warm vintage tint."
+    ),
 }
 
 CONTEXTS = {
