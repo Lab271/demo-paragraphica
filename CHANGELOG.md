@@ -2,6 +2,19 @@
 
 All notable changes to Terra Virtualis (demo-paragraphica). Format: [Keep a Changelog](https://keepachangelog.com/), versions follow SemVer.
 
+## [0.3.0] - 2026-09-11
+
+History store and static gallery (#7).
+
+### Added
+- `Store`: every generation writes a timestamped image and appends one JSON line to `output/history.jsonl` (append-only, forward-compatible `extra`).
+- Static gallery `output/index.html`: newest-first card grid, style filter, fold-out with description, prompt, model and duration.
+- `terra history [--last N]`, `terra gallery [--open]`; `make history`, `make gallery`.
+- `Result.duration_s` times the model calls.
+
+### Changed
+- `terra generate --out-dir` replaces `--out`; images are named `<timestamp>-<place>-<style>.<ext>`.
+
 ## [0.2.0] - 2026-09-11
 
 First release of the rebuild ([docs/plan-2026-09.md](docs/plan-2026-09.md), #5).
