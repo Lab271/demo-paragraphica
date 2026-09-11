@@ -11,7 +11,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-09-04T17:25:49.05189Z"
+exclude-newer = "2026-09-04T17:26:10.728904Z"
 exclude-newer-span = "P7D"
 
 [[package]]
@@ -925,7 +925,7 @@ wheels = [
 
 [[package]]
 name = "paragraphica"
-version = "0.3.0"
+version = "0.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "google-genai" },
