@@ -44,6 +44,13 @@ def generate(
     time_of_day: Annotated[
         str | None, typer.Option("--time-of-day", help="Override the clock: " + " | ".join(ctxmod.TIMES_OF_DAY))
     ] = None,
+    wander: Annotated[
+        float, typer.Option("--wander", help="Metres: move to a random spot within this radius first (#22)")
+    ] = 0.0,
+    seed: Annotated[int | None, typer.Option(help="Reproducible wandering")] = None,
+    variants: Annotated[
+        int, typer.Option("--variants", "-n", min=1, max=4, help="Images for the same prompt (#23)")
+    ] = 1,
     dry_run: Annotated[bool, typer.Option("--dry-run", help="Print description + prompt, make no image call")] = False,
     out_dir: Annotated[
         Path, typer.Option("--out-dir", "-o", help="History store: images + history.jsonl + index.html")
@@ -70,12 +77,21 @@ def generate(
         include_weather=weather,
         quality=quality,
         time_of_day=time_of_day,
+        wander_m=wander,
+        seed=seed,
     )
     model = backends.make_backend(backend)
-    result = core.generate(req, model, dry_run=dry_run)
+    results = (
+        [core.generate(req, model, dry_run=dry_run)]
+        if dry_run or variants == 1
+        else core.generate_variants(req, model, variants)
+    )
+    result = results[0]
 
     typer.echo(f"Backend:     {backend}")
-    typer.echo(f"Location:    {result.context.address} ({lat:.6f}, {lon:.6f})")
+    typer.echo(
+        f"Location:    {result.context.address} ({result.context.lat or lat:.6f}, {result.context.lon or lon:.6f})"
+    )
     if result.context.time_of_day:
         typer.echo(f"Time:        {result.context.time_of_day}")
     if result.context.weather:
@@ -85,18 +101,19 @@ def generate(
     if dry_run:
         return
     store = Store(out_dir)
-    rec = store.save(
-        req,
-        result,
-        backend=backend,
-        text_model=getattr(model, "text_model", ""),
-        image_model=getattr(model, "image_model", ""),
-        location=location or "",
-    )
+    for res in results:
+        rec = store.save(
+            req,
+            res,
+            backend=backend,
+            text_model=getattr(model, "text_model", ""),
+            image_model=getattr(model, "image_model", ""),
+            location=location or "",
+        )
+        if res.revised_prompt:
+            typer.echo(f"Revised:     {res.revised_prompt}")
+        typer.echo(f"Image:       {store.root / rec.image}  ({rec.duration_s:g}s)")
     _write_gallery(store)
-    if result.revised_prompt:
-        typer.echo(f"Revised:     {result.revised_prompt}")
-    typer.echo(f"Image:       {store.root / rec.image}  ({rec.duration_s:g}s)")
 
 
 def _write_gallery(store: Store) -> Path:

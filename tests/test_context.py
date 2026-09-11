@@ -55,10 +55,23 @@ def test_build_context_uses_apis_only_when_asked(monkeypatch, mapbox_feature, ow
     monkeypatch.setattr(context.api, "call_openweathermap", lambda lat, lon: calls.append("owm") or owm_response)
 
     ctx = context.build_context(*SBP, include_time=False, include_weather=False)
-    assert ctx == context.Context(address="Boeingavenue, Schiphol-Rijk, Netherlands")
+    assert ctx == context.Context(address="Boeingavenue, Schiphol-Rijk, Netherlands", lat=SBP[0], lon=SBP[1])
     assert calls == ["mapbox"]
 
     ctx = context.build_context(*SBP, include_time=True, include_weather=True)
     assert ctx.weather.startswith("The temperature is 10.06")
     assert ctx.time_of_day
     assert calls == ["mapbox", "mapbox", "owm"]
+
+
+def test_wander_stays_within_radius_and_is_seeded():
+    import math
+    import random
+
+    a = context.wander(52.378, 4.9, 1500, random.Random(7))
+    b = context.wander(52.378, 4.9, 1500, random.Random(7))
+    assert a == b
+    dlat = (a[0] - 52.378) * 111_320
+    dlon = (a[1] - 4.9) * 111_320 * math.cos(math.radians(52.378))
+    assert 0 < math.hypot(dlat, dlon) <= 1500
+    assert context.wander(52.378, 4.9, 1500, random.Random(8)) != a

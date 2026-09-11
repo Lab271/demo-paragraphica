@@ -36,6 +36,7 @@ class Record:
     image_model: str
     image: str  # file name relative to the store root
     duration_s: float
+    wander_m: float = 0.0
     extra: dict = field(default_factory=dict)
 
 
@@ -84,8 +85,8 @@ class Store:
             timestamp=stamp.isoformat(timespec="seconds"),
             location=location,
             address=result.context.address,
-            lat=req.lat,
-            lon=req.lon,
+            lat=result.context.lat or req.lat,
+            lon=result.context.lon or req.lon,
             style=req.style,
             context=req.context,
             position=req.position,
@@ -100,6 +101,7 @@ class Store:
             image_model=image_model,
             image=path.name,
             duration_s=round(result.duration_s, 1),
+            wander_m=req.wander_m,
         )
         with self.history_path.open("a", encoding="utf-8") as f:
             data = asdict(rec)

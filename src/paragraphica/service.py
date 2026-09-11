@@ -32,6 +32,9 @@ class GenerateRequest(BaseModel):
     include_time: bool = True
     include_weather: bool = False
     time_of_day: str | None = Field(None, description="Override the clock; one of GET /times")
+    wander_m: float = Field(0.0, ge=0, le=20000, description="Move to a random spot within this radius first")
+    seed: int | None = None
+    variants: int = Field(1, ge=1, le=4, description="Images for the same prompt")
 
 
 def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_BACKEND) -> FastAPI:
@@ -91,22 +94,27 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
             include_weather=req.include_weather,
             quality=req.quality,
             time_of_day=req.time_of_day or None,
+            wander_m=req.wander_m,
+            seed=req.seed,
         )
         model = backends.make_backend(backend_name)
         try:
-            result = core.generate(core_req, model)
+            results = core.generate_variants(core_req, model, req.variants)
         except backends.TransientError as e:
             raise HTTPException(503, f"model temporarily unavailable: {e}") from None
-        rec = store.save(
-            core_req,
-            result,
-            backend=backend_name,
-            text_model=getattr(model, "text_model", ""),
-            image_model=getattr(model, "image_model", ""),
-            location=req.location or "",
-        )
+        recs = [
+            store.save(
+                core_req,
+                res,
+                backend=backend_name,
+                text_model=getattr(model, "text_model", ""),
+                image_model=getattr(model, "image_model", ""),
+                location=req.location or "",
+            )
+            for res in results
+        ]
         (store.root / "index.html").write_text(gallery.render(store.records()), encoding="utf-8")
-        return _public(rec)
+        return {**_public(recs[0]), "records": [_public(r) for r in recs]}
 
     @app.get("/images/{name}")
     def image(name: str) -> FileResponse:

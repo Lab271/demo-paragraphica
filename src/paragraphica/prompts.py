@@ -42,6 +42,15 @@ LOOKS = {
     "lego": "Built entirely from Lego bricks, minifigures for people, presented as a photographed set.",
     "coloring page": "Black line art on white for a colouring book: bold clean outlines, no shading, no colour.",
     "pixel": "16-bit pixel art, 320x240 feel, limited palette, dithering, video game screenshot.",
+    "dutch masters": (
+        "Oil painting in the manner of the 17th-century Dutch masters: a single window light from the left, "
+        "deep warm shadow, glazed surfaces, ochre and umber palette."
+    ),
+    "cyanotype": "Cyanotype photographic print: Prussian blue tones, white highlights, soft edges, paper texture.",
+    "stained glass": "Stained glass window: leaded black outlines, saturated glass colours, light coming from behind.",
+    "tin toy": "Lithographed tin toy diorama: glossy enamel, visible tabs and rivets, simplified shapes, 1950s.",
+    "risograph": "Risograph poster print in two inks, fluorescent pink and teal, slight misregistration, paper grain.",
+    "thermal": "False-colour thermal camera image: heat gradients from deep blue to white-hot, soft edges, no fine text.",
 }
 
 FRAMINGS = {

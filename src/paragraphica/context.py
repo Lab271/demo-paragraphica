@@ -3,6 +3,8 @@
 Pure functions over recorded API responses, plus one `build_context` that
 performs the network calls. Timezone is computed offline."""
 
+import math
+import random
 from dataclasses import dataclass
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -31,6 +33,8 @@ class Context:
     address: str
     time_of_day: str = ""
     weather: str = ""
+    lat: float = 0.0  # where the description is about (after wandering, #22)
+    lon: float = 0.0
 
 
 def address_from_mapbox(feature: dict) -> str:
@@ -69,10 +73,24 @@ def local_hour(lat: float, lon: float, now: datetime | None = None) -> int:
     return now.astimezone(ZoneInfo(zone)).hour
 
 
+def wander(lat: float, lon: float, metres: float, rng: random.Random | None = None) -> tuple[float, float]:
+    """A uniformly random point within `metres` of (lat, lon). Reverse geocoding it
+    afterwards gives a real street elsewhere in town instead of the city-centre pin
+    Mapbox returns for a bare city name (#22)."""
+    rng = rng or random.Random()
+    r = metres * math.sqrt(rng.random())  # sqrt: uniform over the disc, not clustered at the centre
+    theta = rng.random() * 2 * math.pi
+    dlat = (r * math.cos(theta)) / 111_320
+    dlon = (r * math.sin(theta)) / (111_320 * math.cos(math.radians(lat)) or 1e-9)
+    return round(lat + dlat, 6), round(lon + dlon, 6)
+
+
 def build_context(lat: float, lon: float, include_time: bool = True, include_weather: bool = False) -> Context:
     """The only function here that touches the network."""
     return Context(
         address=address_from_mapbox(api.call_mapbox(lat, lon)),
         time_of_day=time_of_day(local_hour(lat, lon)) if include_time else "",
         weather=weather_from_openweathermap(api.call_openweathermap(lat, lon)) if include_weather else "",
+        lat=lat,
+        lon=lon,
     )

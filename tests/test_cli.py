@@ -83,3 +83,14 @@ def test_models_lists_and_filters(monkeypatch):
     result = runner.invoke(cli.app, ["models"])
     assert result.exit_code == 0
     assert "gemini-3.1-flash-image" in result.output and "veo-3" not in result.output
+
+
+def test_variants_write_n_images(monkeypatch, tmp_path):
+    _offline(monkeypatch)
+    result = runner.invoke(
+        cli.app, ["generate", "--lat", "52.09", "--lon", "5.12", "--variants", "3", "--out-dir", str(tmp_path)]
+    )
+    assert result.exit_code == 0, result.output
+    assert len(list(tmp_path.glob("*.jpg"))) == 3 and FakeBackend.image_calls == 3
+    assert (tmp_path / "history.jsonl").read_text().count("\n") == 3
+    assert result.output.count("Image:") == 3
