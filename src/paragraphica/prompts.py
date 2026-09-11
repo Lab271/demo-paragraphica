@@ -1,50 +1,75 @@
 """Prompt vocabulary and the one template that assembles the image prompt.
-No network, no state: everything here is testable with plain strings."""
+No network, no state: everything here is testable with plain strings.
+
+Three axes, named for the camera's dials (#13):
+
+  Look     — medium and era of the picture      (was "style")
+  Framing  — where the camera stands            (was "position")
+  Subject  — what the text model describes      (was "context")
+
+Every fragment is one sentence of concrete visual cues, written for Gemini,
+which follows long grounded prompts and needs no meta text ("Provide this
+as…"). Dict order is dial order (#10). The old names STYLES / POSITIONS /
+CONTEXTS stay as aliases and the request/record fields keep their old names,
+so history written before the rename still loads and renders."""
 
 from paragraphica.context import Context
 
-SYSTEM_PROMPT = "You are an artist and you will give a utmost realistic description of the surroundings."
+SYSTEM_PROMPT = (
+    "You are a location scout writing for a photographer. Describe only what can be seen "
+    "from the given spot, in concrete visual terms: buildings, materials, light, people, "
+    "movement. No history lessons, no adjectives without a noun to hang on."
+)
 
-MAIN_PROMPT = "Give a typical view of"
+# {address} is filled in; the description follows, then framing and look.
+MAIN_PROMPT = "The view from {address}."
 
-STYLES = {
-    "realistic": "Use a cinematic realism image. Realistic with cinematic photography.",
-    "film noir": "Use a low key black and white film noir picture style.",
-    "frank miller": 'Apply a sinister frank miller style like the movie "Sin City".',
-    "impressionism": "Use a 19th century impressionistic painting style.",
-    "lego": "Provide this as a fictional lego box set with typical characters to buy in the store.",
-    "isometric": "Show this as a 3D isometric graphic with characteristic landmarks.",
-    "coloring page": "Coloring page style, bold lines, black and white.",
-    "pop-up": "pop up HAPPY BIRTHDAY greeting card for a rugby fan.",
+LOOKS = {
+    "photo": "Photorealistic, shot on a full-frame camera with natural light and true colours.",
     "polaroid": (
-        "Shot on an instant Polaroid camera: square frame with the white border, slightly faded colours, "
-        "soft focus, light leaks and a warm vintage tint."
+        "Instant Polaroid print: square frame with the white border, faded colours, soft focus, "
+        "light leaks and a warm vintage tint."
     ),
+    "film noir": "Low-key black and white, hard shadows, wet streets reflecting a few lights, 1940s film noir.",
+    "impressionist": "Oil on canvas in the manner of 1880s impressionism: visible brushstrokes, broken colour, soft edges.",
+    "woodblock": "Japanese ukiyo-e woodblock print: flat colour areas, bold outlines, stylised clouds and water.",
+    "blueprint": "Architectural blueprint: white line drawing on cyan paper, measurements, annotations, grid.",
+    "isometric": "Clean 3D isometric illustration with characteristic landmarks, tilt-shift miniature feel.",
+    "lego": "Built entirely from Lego bricks, minifigures for people, presented as a photographed set.",
+    "coloring page": "Black line art on white for a colouring book: bold clean outlines, no shading, no colour.",
+    "pixel": "16-bit pixel art, 320x240 feel, limited palette, dithering, video game screenshot.",
 }
 
-CONTEXTS = {
-    "main attraction": "Provide the single main attraction near {} in a few sentences.",
-    "local people": "Describe the local people near {} in 5 sentences.",
-    "local animals": "Briefly describe the typical local fauna near {}.",
-    "local plants": "Provide a clear description in 5 sentences of the local flora near {}.",
-    "three highlights": (
-        "Mention only three interesting spots in the vicinity of {} in one sentence "
-        "without mentioning the address with the template 'Near by you can see:'."
-    ),
+FRAMINGS = {
+    "eye level": "",
+    "wide": "Ultra-wide lens at eye level, the whole scene in one frame.",
+    "low": "Camera close to the ground looking up, foreground exaggerated.",
+    "aerial": "Seen from a drone about 60 metres up, looking down at an angle.",
+    "street": "Candid street photography at 35 mm, mid-distance, people in motion.",
 }
 
-POSITIONS = {
-    "normal": "",
-    "wide angle": "Use wide angle.",
-    "selfie": "Provide in a selfie style position.",
-    "holga": "Minimalist, holga photo view.",
-    "low angle": "Shoot from a low angle.",
+SUBJECTS = {
+    "landmark": "Name and describe the single most recognisable sight visible from {}, in three sentences.",
+    "people": "Describe the people typically on the street near {} right now: dress, activity, pace. Four sentences.",
+    "nature": "Describe the plants, trees, water and animals one would see around {}. Three sentences.",
+    "night life": "Describe {} after dark: lit windows, bars, traffic, the crowd. Three sentences.",
+    "food": "Describe the food visible on the street near {}: stalls, terraces, what people eat and drink. Three sentences.",
+    "three highlights": "Name three things worth seeing within walking distance of {} in one sentence, no addresses.",
 }
 
+# Compatibility aliases (code and history written before #13).
+STYLES = LOOKS
+POSITIONS = FRAMINGS
+CONTEXTS = SUBJECTS
 
-def describe_messages(context_key: str, ctx: Context, system_prompt: str = SYSTEM_PROMPT) -> list[dict]:
+DEFAULT_LOOK = "photo"
+DEFAULT_FRAMING = "eye level"
+DEFAULT_SUBJECT = "landmark"
+
+
+def describe_messages(subject: str, ctx: Context, system_prompt: str = SYSTEM_PROMPT) -> list[dict]:
     """Chat messages asking the text model to describe the scene."""
-    parts = [CONTEXTS[context_key].format(ctx.address)]
+    parts = [SUBJECTS[subject].format(ctx.address)]
     if ctx.time_of_day:
         parts.append(f"It is {ctx.time_of_day}.")
     if ctx.weather:
@@ -58,10 +83,11 @@ def describe_messages(context_key: str, ctx: Context, system_prompt: str = SYSTE
 def build_prompt(
     address: str,
     description: str,
-    style: str,
-    position: str = "normal",
+    look: str,
+    framing: str = DEFAULT_FRAMING,
     main_prompt: str = MAIN_PROMPT,
 ) -> str:
-    """The image prompt. Empty fragments (e.g. position 'normal') are dropped."""
-    parts = [f"{main_prompt} the {address}.", description.strip(), POSITIONS[position], STYLES[style]]
+    """The image prompt: opener, description, framing, look. Empty fragments are dropped."""
+    opener = main_prompt.format(address=address) if "{address}" in main_prompt else f"{main_prompt} {address}."
+    parts = [opener, description.strip(), FRAMINGS[framing], LOOKS[look]]
     return " ".join(p for p in parts if p)

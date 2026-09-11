@@ -34,8 +34,8 @@ def client(monkeypatch, tmp_path):
 
 def test_vocabulary_endpoints(client):
     assert "polaroid" in client.get("/styles").json()
-    assert "main attraction" in client.get("/contexts").json()
-    assert "low angle" in client.get("/positions").json()
+    assert "landmark" in client.get("/contexts").json()
+    assert "aerial" in client.get("/positions").json()
     assert client.get("/healthz").json()["images"] == 0
 
 

@@ -7,28 +7,48 @@ CTX = Context(address="Boeingavenue, Schiphol-Rijk, Netherlands", time_of_day="a
 
 
 def test_describe_messages_includes_time_and_weather():
-    msgs = prompts.describe_messages("main attraction", CTX)
+    msgs = prompts.describe_messages("landmark", CTX)
     assert msgs[0] == {"role": "system", "content": prompts.SYSTEM_PROMPT}
     assert msgs[1]["content"] == (
-        "Provide the single main attraction near Boeingavenue, Schiphol-Rijk, Netherlands in a few sentences. "
-        "It is afternoon. It rains."
+        "Name and describe the single most recognisable sight visible from Boeingavenue, Schiphol-Rijk, Netherlands, "
+        "in three sentences. It is afternoon. It rains."
     )
 
 
 def test_describe_messages_omits_empty_parts():
-    msgs = prompts.describe_messages("local animals", Context(address="Utrecht, Netherlands"))
-    assert msgs[1]["content"] == "Briefly describe the typical local fauna near Utrecht, Netherlands."
+    msgs = prompts.describe_messages("nature", Context(address="Utrecht, Netherlands"))
+    assert msgs[1]["content"].startswith("Describe the plants, trees, water and animals one would see around Utrecht")
+    assert "It is" not in msgs[1]["content"]
 
 
-@pytest.mark.parametrize("style", prompts.STYLES)
-@pytest.mark.parametrize("position", prompts.POSITIONS)
-def test_build_prompt_every_style_and_position(style, position):
-    prompt = prompts.build_prompt("Utrecht, Netherlands", "A canal.", style, position)
-    assert prompt.startswith("Give a typical view of the Utrecht, Netherlands. A canal.")
-    assert prompt.endswith(prompts.STYLES[style])
+@pytest.mark.parametrize("look", prompts.LOOKS)
+@pytest.mark.parametrize("framing", prompts.FRAMINGS)
+def test_build_prompt_every_look_and_framing(look, framing):
+    prompt = prompts.build_prompt("Utrecht, Netherlands", "A canal.", look, framing)
+    assert prompt.startswith("The view from Utrecht, Netherlands. A canal.")
+    assert prompt.endswith(prompts.LOOKS[look])
     assert "  " not in prompt
 
 
-def test_build_prompt_custom_main_prompt():
-    prompt = prompts.build_prompt("Utrecht", "x", "lego", main_prompt="Show me")
-    assert prompt.startswith("Show me the Utrecht. x")
+def test_fragments_are_one_concrete_sentence():
+    for table in (prompts.LOOKS, prompts.FRAMINGS):
+        for key, frag in table.items():
+            assert not frag.lower().startswith(("use ", "provide", "show this", "apply")), key
+            assert frag == "" or frag.endswith("."), key
+
+
+def test_build_prompt_custom_main_prompt_with_and_without_placeholder():
+    assert prompts.build_prompt("Utrecht", "x", "lego", main_prompt="Postcard of {address}.").startswith(
+        "Postcard of Utrecht. x"
+    )
+    assert prompts.build_prompt("Utrecht", "x", "lego", main_prompt="Show me").startswith("Show me Utrecht. x")
+
+
+def test_aliases_and_defaults():
+    assert (
+        prompts.STYLES is prompts.LOOKS
+        and prompts.CONTEXTS is prompts.SUBJECTS
+        and prompts.POSITIONS is prompts.FRAMINGS
+    )
+    assert prompts.DEFAULT_LOOK in prompts.LOOKS and prompts.DEFAULT_FRAMING in prompts.FRAMINGS
+    assert prompts.FRAMINGS[prompts.DEFAULT_FRAMING] == ""

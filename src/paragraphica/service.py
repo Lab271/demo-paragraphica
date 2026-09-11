@@ -25,9 +25,9 @@ class GenerateRequest(BaseModel):
     location: str | None = Field(None, description="Place name, forward geocoded; ignored when lat/lon given")
     lat: float | None = None
     lon: float | None = None
-    style: str = "realistic"
-    context: str = "main attraction"
-    position: str = "normal"
+    style: str = prompts.DEFAULT_LOOK
+    context: str = prompts.DEFAULT_SUBJECT
+    position: str = prompts.DEFAULT_FRAMING
     quality: str = "medium"
     include_time: bool = True
     include_weather: bool = False

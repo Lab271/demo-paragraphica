@@ -1,3 +1,4 @@
+from paragraphica import prompts
 from paragraphica.backend import Generated
 from paragraphica.context import Context
 from paragraphica.core import Request, generate
@@ -23,8 +24,8 @@ def test_dry_run_spends_no_image_call():
     assert backend.image_calls == 0
     assert result.image is None
     assert result.description == "The Dom tower."
-    assert result.prompt.startswith("Give a typical view of the Utrecht, Netherlands. The Dom tower.")
-    assert result.prompt.endswith("lego box set with typical characters to buy in the store.")
+    assert result.prompt.startswith("The view from Utrecht, Netherlands. The Dom tower.")
+    assert result.prompt.endswith(prompts.LOOKS["lego"])
 
 
 def test_full_run_returns_image_and_revised_prompt():

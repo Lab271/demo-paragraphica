@@ -146,9 +146,9 @@ if (hash > 0) show(hash - 1);
 CONTROLS = """
 <form id=gen>
   <input name=location placeholder="Location, e.g. Amsterdam" autocomplete=off required>
-  <select name=style data-src="/styles"></select>
-  <select name=context data-src="/contexts"></select>
-  <select name=position data-src="/positions"></select>
+  <select name=style data-src="/styles" title="Look"></select>
+  <select name=context data-src="/contexts" title="Subject"></select>
+  <select name=position data-src="/positions" title="Framing"></select>
   <select name=quality><option>low</option><option selected>medium</option><option>high</option></select>
   <select name=time_of_day data-src="/times" data-first="now (local time)"></select>
   <label><input type=checkbox name=include_weather> weather</label>
@@ -191,7 +191,9 @@ form.addEventListener('submit', async ev => {
 def _card(r: Record, image_base: str) -> str:
     when = r.timestamp.replace("T", " ")[:16]
     how = " · ".join(
-        x for x in (r.position if r.position != "normal" else "", r.context, r.time_of_day, r.weather) if x
+        x
+        for x in (r.position if r.position not in ("normal", "eye level") else "", r.context, r.time_of_day, r.weather)
+        if x
     )
     revised = f"<p class=prompt><b>Model note</b> {escape(r.revised_prompt)}</p>" if r.revised_prompt else ""
     src = escape(image_base + r.image)

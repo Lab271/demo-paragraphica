@@ -26,9 +26,15 @@ def generate(
     location: Annotated[str | None, typer.Option("--location", "-l", help="Place name (forward geocoded)")] = None,
     lat: Annotated[float | None, typer.Option(help="Latitude; overrides --location")] = None,
     lon: Annotated[float | None, typer.Option(help="Longitude; overrides --location")] = None,
-    style: Annotated[str, typer.Option("--style", "-s")] = "realistic",
-    context: Annotated[str, typer.Option("--context", "-c")] = "main attraction",
-    position: Annotated[str, typer.Option("--position", "-p")] = "normal",
+    style: Annotated[
+        str, typer.Option("--style", "-s", help="Look: " + " | ".join(prompts.LOOKS))
+    ] = prompts.DEFAULT_LOOK,
+    context: Annotated[
+        str, typer.Option("--context", "-c", help="Subject: " + " | ".join(prompts.SUBJECTS))
+    ] = prompts.DEFAULT_SUBJECT,
+    position: Annotated[
+        str, typer.Option("--position", "-p", help="Framing: " + " | ".join(prompts.FRAMINGS))
+    ] = prompts.DEFAULT_FRAMING,
     quality: Annotated[str, typer.Option(help="low | medium | high")] = "medium",
     backend: Annotated[
         str, typer.Option("--backend", "-b", help="Model backend (PARA_BACKEND)")
@@ -127,8 +133,12 @@ def gallery_cmd(
 
 @app.command()
 def options() -> None:
-    """List the available styles, contexts and positions."""
-    for title, table in (("styles", prompts.STYLES), ("contexts", prompts.CONTEXTS), ("positions", prompts.POSITIONS)):
+    """List the vocabulary: looks, subjects, framings."""
+    for title, table in (
+        ("looks (--style)", prompts.LOOKS),
+        ("subjects (--context)", prompts.SUBJECTS),
+        ("framings (--position)", prompts.FRAMINGS),
+    ):
         typer.echo(f"{title}:")
         for key in table:
             typer.echo(f"  {key}")

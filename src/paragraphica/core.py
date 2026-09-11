@@ -12,9 +12,9 @@ from paragraphica.context import Context, build_context
 class Request:
     lat: float
     lon: float
-    style: str = "realistic"
-    context: str = "main attraction"
-    position: str = "normal"
+    style: str = prompts.DEFAULT_LOOK
+    context: str = prompts.DEFAULT_SUBJECT
+    position: str = prompts.DEFAULT_FRAMING
     main_prompt: str = prompts.MAIN_PROMPT
     include_time: bool = True
     include_weather: bool = False
