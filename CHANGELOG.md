@@ -2,6 +2,15 @@
 
 All notable changes to Terra Virtualis (demo-paragraphica). Format: [Keep a Changelog](https://keepachangelog.com/), versions follow SemVer.
 
+## [0.7.0] - 2026-09-13
+
+Gallery in the Lab271 house style.
+
+### Changed
+- Gallery and served page restyled to the Lab271 design system: midnight canvas, turquoise leads, mono for all small type in path style (`film noir \ landmark \ afternoon`), one square corner on cards and fields, pill buttons.
+- Header carries the Lab271 \ Schuberg Philis co-brand lockup (inlined SVG, cobalt only there) and the refracted slash pair as the surface's one brand device.
+- Fonts fall back to Avenir Next / Inter; TT Interphases is not shipped.
+
 ## [0.6.0] - 2026-09-13
 
 Text control and two Amsterdam framings (#25, #26).
