@@ -149,12 +149,13 @@ def history(
 def gallery_cmd(
     out_dir: Annotated[Path, typer.Option("--out-dir", "-o")] = OUT_DIR,
     open_: Annotated[bool, typer.Option("--open", help="Open the page in the default browser")] = False,
+    play: Annotated[bool, typer.Option("--play", help="Open as a full-screen slideshow (#36)")] = False,
 ) -> None:
     """(Re)build output/index.html, the static gallery over the history store."""
     page = _write_gallery(Store(out_dir))
     typer.echo(f"Gallery:     {page}")
-    if open_:
-        typer.launch(str(page.resolve()))
+    if open_ or play:
+        typer.launch(page.resolve().as_uri() + ("?play" if play else ""))
 
 
 @app.command()
