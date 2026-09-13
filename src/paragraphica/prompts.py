@@ -63,6 +63,14 @@ FRAMINGS = {
     "low": "Camera close to the ground looking up, foreground exaggerated.",
     "aerial": "Seen from a drone about 60 metres up, looking down at an angle.",
     "street": "Candid street photography at 35 mm, mid-distance, people in motion.",
+    "through a window": (
+        "Seen from inside through a window: the frame and sill in the foreground, faint reflections on the glass, "
+        "the scene outside beyond."
+    ),
+    "from a canal boat": (
+        "Seen from a low boat on the water: the waterline in the foreground, a bridge arching overhead, "
+        "quay walls and house fronts rising on both sides."
+    ),
 }
 
 SUBJECTS = {
