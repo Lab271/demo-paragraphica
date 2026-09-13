@@ -2,7 +2,7 @@
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install lock lint format test coverage ci env-check run dry-run history gallery serve service-install service-uninstall streamlit clean
+.PHONY: help install lock lint format test coverage ci env-check run dry-run history gallery serve service-install service-uninstall clean
 
 help: ## Show this help
 	@echo ""
@@ -77,8 +77,6 @@ service-uninstall: ## Stop + remove the launchd agent
 	launchctl bootout gui/$$(id -u)/io.lab271.terra 2>/dev/null || true
 	rm -f $(HOME)/Library/LaunchAgents/$(PLIST)
 
-streamlit: ## Legacy Streamlit UI (removed in #10)
-	$(OP) uv run --extra streamlit streamlit run terra_virtualis.py
 
 # === Housekeeping ===
 

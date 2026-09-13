@@ -17,8 +17,6 @@ terra = "paragraphica.cli:app"
 
 [project.optional-dependencies]
 service = ["fastapi>=0.115", "uvicorn>=0.30"]
-# Legacy Streamlit UI (terra_virtualis.py); removed in #10.
-streamlit = ["streamlit>=1.30"]
 
 [dependency-groups]
 dev = [
