@@ -44,8 +44,8 @@ filterwarnings = [
 
 [tool.ruff]
 line-length = 120
-# examples/rotary_probe.py is a Pi GPIO script (gpiozero) kept for #10; setup.py goes in #6.
-extend-exclude = ["examples", "setup.py"]
+# examples/rotary_probe.py is a Pi GPIO script (gpiozero) kept for #10.
+extend-exclude = ["examples"]
 
 [tool.ruff.lint]
 # E701 - multiple-statements-on-one-line-colon
