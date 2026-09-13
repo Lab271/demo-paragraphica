@@ -2,6 +2,16 @@
 
 All notable changes to Terra Virtualis (demo-paragraphica). Format: [Keep a Changelog](https://keepachangelog.com/), versions follow SemVer.
 
+## [0.8.0] - 2026-09-13
+
+Slideshow (#36); legacy Pi role and Streamlit UI removed.
+
+### Added
+- Slideshow: `play` button and `p` key cycle the visible pictures newest first in Full mode, default 8 s; `?play` / `?play=N` starts it on load; `terra gallery --play` (#36).
+
+### Removed
+- `ansible/` (2024 Pi role), `terra_virtualis.py` with the `streamlit` extra and `make streamlit`, `output/output.png`, `setup.py` (#6, #10).
+
 ## [0.7.0] - 2026-09-13
 
 Gallery in the Lab271 house style.
