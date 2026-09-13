@@ -19,7 +19,7 @@ Then, for the developer loop:
     uv run terra options                                  # the vocabulary: looks, subjects, framings
     make env-check && op run --env-file=op.env -- uv run terra models   # Gemini models your key can call
 ```
-`make help` lists everything. The Streamlit UI is legacy (`make streamlit`, removed in #10). See `docs/plan-2026-09.md` for the rebuild plan.
+`make help` lists everything. See `docs/plan-2026-09.md` for the rebuild plan.
 
 ## Service
 
