@@ -36,6 +36,7 @@ class GenerateRequest(BaseModel):
     wander_m: float = Field(0.0, ge=0, le=20000, description="Move to a random spot within this radius first")
     seed: int | None = None
     variants: int = Field(1, ge=1, le=4, description="Images for the same prompt")
+    caption: bool = Field(False, description="Letter the place name into the picture")
 
 
 def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_BACKEND) -> FastAPI:
@@ -105,6 +106,7 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
             time_of_day=req.time_of_day or None,
             wander_m=req.wander_m,
             seed=req.seed,
+            caption=req.caption,
         )
         try:
             results = core.generate_variants(core_req, model, req.variants)

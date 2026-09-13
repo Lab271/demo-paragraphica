@@ -24,6 +24,7 @@ class Request:
     size: str = "1024x1024"
     wander_m: float = 0.0  # move to a random point within this radius before geocoding (#22)
     seed: int | None = None  # makes wandering reproducible
+    caption: bool = False  # letter the place name into the picture (#25)
 
 
 @dataclass(frozen=True)
@@ -47,7 +48,7 @@ def _prepare(req: Request, backend: Backend, context: Context | None) -> tuple[C
         ctx = replace(ctx, time_of_day=req.time_of_day)
     t0 = time.perf_counter()
     description = backend.describe(prompts.describe_messages(req.context, ctx))
-    prompt = prompts.build_prompt(ctx.address, description, req.style, req.position, req.main_prompt)
+    prompt = prompts.build_prompt(ctx.address, description, req.style, req.position, req.main_prompt, req.caption)
     return ctx, description, prompt, t0
 
 

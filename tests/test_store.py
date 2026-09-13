@@ -54,3 +54,14 @@ def test_dry_run_result_is_rejected(tmp_path):
 
 def test_empty_store(tmp_path):
     assert Store(tmp_path / "missing").records() == []
+
+
+def test_caption_is_recorded_and_old_history_defaults_off(tmp_path):
+    store = Store(tmp_path)
+    rec = store.save(
+        Request(lat=52.27, lon=4.75, caption=True), RESULT, backend="g", text_model="t", image_model="i", now=NOW
+    )
+    assert rec.caption is True and '"caption": true' in store.history_path.read_text()
+    line = store.history_path.read_text().replace(', "caption": true', "")
+    store.history_path.write_text(line)
+    assert store.records()[0].caption is False

@@ -79,6 +79,11 @@ STYLES = LOOKS
 POSITIONS = FRAMINGS
 CONTEXTS = SUBJECTS
 
+# Text control (#25). Gemini letters dates and captions into graphic looks on its
+# own; off by default, on when the camera should print a titled postcard.
+NO_TEXT = "No text, lettering or captions in the picture."
+CAPTION = 'The place name "{address}" lettered into the picture as a title, like a postcard.'
+
 DEFAULT_LOOK = "photo"
 DEFAULT_FRAMING = "eye level"
 DEFAULT_SUBJECT = "landmark"
@@ -103,8 +108,10 @@ def build_prompt(
     look: str,
     framing: str = DEFAULT_FRAMING,
     main_prompt: str = MAIN_PROMPT,
+    caption: bool = False,
 ) -> str:
-    """The image prompt: opener, description, framing, look. Empty fragments are dropped."""
+    """The image prompt: opener, description, framing, look, text control. Empty fragments are dropped."""
     opener = main_prompt.format(address=address) if "{address}" in main_prompt else f"{main_prompt} {address}."
-    parts = [opener, description.strip(), FRAMINGS[framing], LOOKS[look]]
+    text = CAPTION.format(address=address.split(",")[0]) if caption else NO_TEXT
+    parts = [opener, description.strip(), FRAMINGS[framing], LOOKS[look], text]
     return " ".join(p for p in parts if p)
