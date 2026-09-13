@@ -64,8 +64,16 @@ def generate(
     if time_of_day is not None:
         _choice("time-of-day", time_of_day, dict.fromkeys(ctxmod.TIMES_OF_DAY))
 
+    model = backends.make_backend(backend)
     if lat is None or lon is None:
-        lat, lon = api.call_mapbox_forward(location) if location else DEFAULT_LATLON
+        if location:
+            try:
+                found = ctxmod.geocode(location, model.describe)
+            except ctxmod.LocationNotFound:
+                raise typer.BadParameter(f"location not found: {location!r}", param_hint="--location") from None
+            lat, lon, location = found.lat, found.lon, found.name
+        else:
+            lat, lon = DEFAULT_LATLON
 
     req = core.Request(
         lat=lat,
@@ -80,7 +88,6 @@ def generate(
         wander_m=wander,
         seed=seed,
     )
-    model = backends.make_backend(backend)
     results = (
         [core.generate(req, model, dry_run=dry_run)]
         if dry_run or variants == 1

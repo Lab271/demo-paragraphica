@@ -14,21 +14,27 @@ class FakeBackend:
     image_model = "i"
 
     def describe(self, messages):
+        if messages[0]["content"] == service.ctxmod.GEOCODE_SYSTEM:
+            return '{"name": null}'  # the geocoder fallback declines: unknown places stay 404
         return "The Dom tower."
 
     def image(self, prompt, quality, size):
         return Generated(image=b"JPG", revised_prompt="note", mime_type="image/jpeg")
 
 
+UTRECHT = [
+    {
+        "properties": {"feature_type": "place", "full_address": "Utrecht, Netherlands"},
+        "geometry": {"coordinates": [5.12, 52.09]},
+    }
+]
+
+
 @pytest.fixture
 def client(monkeypatch, tmp_path):
     monkeypatch.setattr(backend, "make_backend", lambda name: FakeBackend())
     monkeypatch.setattr(core, "build_context", lambda *a, **k: CTX)
-    monkeypatch.setattr(
-        service.api,
-        "call_mapbox_forward",
-        lambda q: (52.09, 5.12) if q == "Utrecht" else (_ for _ in ()).throw(IndexError),
-    )
+    monkeypatch.setattr(service.ctxmod.api, "call_mapbox_forward", lambda q: UTRECHT if q == "Utrecht" else [])
     return TestClient(service.create_app(Store(tmp_path)))
 
 

@@ -21,12 +21,13 @@ def call_mapbox(lat: float, lon: float) -> dict:
     return response.json()["features"][0]
 
 
-def call_mapbox_forward(query: str) -> tuple[float, float]:
-    """Forward geocode a free-text place name to (lat, lon)."""
-    api_url = "https://api.mapbox.com/search/geocode/v6/forward?q={}&limit=1&access_token={}"
-    response = requests.get(api_url.format(requests.utils.quote(query), _mapbox_token()), timeout=TIMEOUT)
-    lon, lat = response.json()["features"][0]["geometry"]["coordinates"]
-    return lat, lon
+def call_mapbox_forward(query: str, limit: int = 3) -> list[dict]:
+    """Forward geocode a free-text place name; returns Mapbox v6 features, best first.
+    Callers judge them (context.pick_mapbox_hit): with an unknown name Mapbox happily
+    returns a street called 'Amsterdam' on another continent (#29)."""
+    api_url = "https://api.mapbox.com/search/geocode/v6/forward?q={}&limit={}&access_token={}"
+    response = requests.get(api_url.format(requests.utils.quote(query), limit, _mapbox_token()), timeout=TIMEOUT)
+    return response.json().get("features", [])
 
 
 def call_openweathermap(lat: float, lon: float) -> dict:

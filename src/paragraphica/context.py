@@ -3,8 +3,11 @@
 Pure functions over recorded API responses, plus one `build_context` that
 performs the network calls. Timezone is computed offline."""
 
+import json
 import math
 import random
+import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -94,3 +97,77 @@ def build_context(lat: float, lon: float, include_time: bool = True, include_wea
         lat=lat,
         lon=lon,
     )
+
+
+# --- Forward geocoding (#29) -------------------------------------------------
+#
+# Mapbox is precise for names it knows (Jordaan, Montmartre, Kreuzberg) but never
+# says "unknown": for "amsterdam wallen" it returns a Rue d'Amsterdam near Rouen.
+# So a Mapbox hit is accepted only when it looks like an answer to the question,
+# and otherwise a small text-model call resolves colloquial names to coordinates.
+
+GEOCODE_SYSTEM = (
+    "You are a geocoder. Given a free-text place description, possibly colloquial or "
+    "misspelled, return the WGS84 coordinates of its centre as JSON only: "
+    '{"name": "<canonical name, city, country>", "lat": <float>, "lon": <float>}. '
+    'If you cannot identify a real place, return {"name": null}.'
+)
+
+# Feature types that stand for "a named place" rather than a street or house
+# number; a query of one or two words is not asking for an address.
+_PLACE_TYPES = {"country", "region", "postcode", "district", "place", "locality", "neighborhood", "poi"}
+
+
+@dataclass(frozen=True)
+class Located:
+    lat: float
+    lon: float
+    name: str  # what the coordinates stand for, e.g. "De Wallen, Amsterdam, Netherlands"
+
+
+def _words(text: str) -> set[str]:
+    return {w for w in re.findall(r"\w+", text.lower()) if len(w) >= 3}
+
+
+def pick_mapbox_hit(query: str, features: list[dict]) -> Located | None:
+    """The first feature that names a place and mentions every word of the query."""
+    want = _words(query)
+    for f in features:
+        props = f.get("properties", {})
+        if props.get("feature_type") not in _PLACE_TYPES:
+            continue
+        label = props.get("full_address") or props.get("name") or ""
+        if want <= _words(label):
+            lon, lat = f["geometry"]["coordinates"]
+            return Located(lat, lon, label)
+    return None
+
+
+def parse_geocode(text: str) -> Located | None:
+    """The model's JSON answer, or None when it declined or returned garbage."""
+    m = re.search(r"\{.*\}", text, re.DOTALL)
+    if not m:
+        return None
+    try:
+        d = json.loads(m.group())
+        if not d.get("name"):
+            return None
+        return Located(float(d["lat"]), float(d["lon"]), str(d["name"]))
+    except (ValueError, TypeError, KeyError):
+        return None
+
+
+class LocationNotFound(LookupError):
+    pass
+
+
+def geocode(query: str, describe: Callable[[list[dict]], str]) -> Located:
+    """Mapbox first, the text model as fallback; `describe` is Backend.describe."""
+    hit = pick_mapbox_hit(query, api.call_mapbox_forward(query))
+    if hit is None:
+        hit = parse_geocode(
+            describe([{"role": "system", "content": GEOCODE_SYSTEM}, {"role": "user", "content": query}])
+        )
+    if hit is None:
+        raise LocationNotFound(query)
+    return hit

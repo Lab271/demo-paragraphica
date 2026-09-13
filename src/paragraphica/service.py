@@ -13,8 +13,9 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel, Field
 
-from paragraphica import __version__, api, core, gallery, prompts
+from paragraphica import __version__, core, gallery, prompts
 from paragraphica import backend as backends
+from paragraphica import context as ctxmod
 from paragraphica.context import TIMES_OF_DAY
 from paragraphica.store import Store
 
@@ -77,11 +78,19 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
         _check("position", req.position, prompts.POSITIONS)
         if req.time_of_day:
             _check("time_of_day", req.time_of_day, dict.fromkeys(TIMES_OF_DAY))
+        model = backends.make_backend(backend_name)
+        location = req.location or ""
         if req.lat is None or req.lon is None:
-            try:
-                lat, lon = api.call_mapbox_forward(req.location) if req.location else DEFAULT_LATLON
-            except (KeyError, IndexError):
-                raise HTTPException(404, f"location not found: {req.location!r}") from None
+            if req.location:
+                try:
+                    found = ctxmod.geocode(req.location, model.describe)
+                except ctxmod.LocationNotFound:
+                    raise HTTPException(404, f"location not found: {req.location!r}") from None
+                except backends.TransientError as e:
+                    raise HTTPException(503, f"model temporarily unavailable: {e}") from None
+                lat, lon, location = found.lat, found.lon, found.name
+            else:
+                lat, lon = DEFAULT_LATLON
         else:
             lat, lon = req.lat, req.lon
         core_req = core.Request(
@@ -97,7 +106,6 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
             wander_m=req.wander_m,
             seed=req.seed,
         )
-        model = backends.make_backend(backend_name)
         try:
             results = core.generate_variants(core_req, model, req.variants)
         except backends.TransientError as e:
@@ -109,7 +117,7 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
                 backend=backend_name,
                 text_model=getattr(model, "text_model", ""),
                 image_model=getattr(model, "image_model", ""),
-                location=req.location or "",
+                location=location,
             )
             for res in results
         ]
