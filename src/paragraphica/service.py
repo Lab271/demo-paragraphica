@@ -13,8 +13,10 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel, Field
 
-from paragraphica import __version__, api, core, gallery, prompts
+from paragraphica import __version__, core, gallery, prompts
 from paragraphica import backend as backends
+from paragraphica import context as ctxmod
+from paragraphica.context import TIMES_OF_DAY
 from paragraphica.store import Store
 
 DEFAULT_LATLON = (52.274972, 4.750813)  # Schuberg Philis, Schiphol-Rijk
@@ -24,12 +26,16 @@ class GenerateRequest(BaseModel):
     location: str | None = Field(None, description="Place name, forward geocoded; ignored when lat/lon given")
     lat: float | None = None
     lon: float | None = None
-    style: str = "realistic"
-    context: str = "main attraction"
-    position: str = "normal"
+    style: str = prompts.DEFAULT_LOOK
+    context: str = prompts.DEFAULT_SUBJECT
+    position: str = prompts.DEFAULT_FRAMING
     quality: str = "medium"
     include_time: bool = True
     include_weather: bool = False
+    time_of_day: str | None = Field(None, description="Override the clock; one of GET /times")
+    wander_m: float = Field(0.0, ge=0, le=20000, description="Move to a random spot within this radius first")
+    seed: int | None = None
+    variants: int = Field(1, ge=1, le=4, description="Images for the same prompt")
 
 
 def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_BACKEND) -> FastAPI:
@@ -56,6 +62,10 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
     def positions() -> dict[str, str]:
         return prompts.POSITIONS
 
+    @app.get("/times")
+    def times() -> list[str]:
+        return list(TIMES_OF_DAY)
+
     @app.get("/history")
     def history(last: Annotated[int, Query(ge=1, le=1000)] = 50) -> list[dict]:
         recs = store.records()[-last:]
@@ -66,11 +76,21 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
         _check("style", req.style, prompts.STYLES)
         _check("context", req.context, prompts.CONTEXTS)
         _check("position", req.position, prompts.POSITIONS)
+        if req.time_of_day:
+            _check("time_of_day", req.time_of_day, dict.fromkeys(TIMES_OF_DAY))
+        model = backends.make_backend(backend_name)
+        location = req.location or ""
         if req.lat is None or req.lon is None:
-            try:
-                lat, lon = api.call_mapbox_forward(req.location) if req.location else DEFAULT_LATLON
-            except (KeyError, IndexError):
-                raise HTTPException(404, f"location not found: {req.location!r}") from None
+            if req.location:
+                try:
+                    found = ctxmod.geocode(req.location, model.describe)
+                except ctxmod.LocationNotFound:
+                    raise HTTPException(404, f"location not found: {req.location!r}") from None
+                except backends.TransientError as e:
+                    raise HTTPException(503, f"model temporarily unavailable: {e}") from None
+                lat, lon, location = found.lat, found.lon, found.name
+            else:
+                lat, lon = DEFAULT_LATLON
         else:
             lat, lon = req.lat, req.lon
         core_req = core.Request(
@@ -82,22 +102,27 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
             include_time=req.include_time,
             include_weather=req.include_weather,
             quality=req.quality,
+            time_of_day=req.time_of_day or None,
+            wander_m=req.wander_m,
+            seed=req.seed,
         )
-        model = backends.make_backend(backend_name)
         try:
-            result = core.generate(core_req, model)
+            results = core.generate_variants(core_req, model, req.variants)
         except backends.TransientError as e:
             raise HTTPException(503, f"model temporarily unavailable: {e}") from None
-        rec = store.save(
-            core_req,
-            result,
-            backend=backend_name,
-            text_model=getattr(model, "text_model", ""),
-            image_model=getattr(model, "image_model", ""),
-            location=req.location or "",
-        )
+        recs = [
+            store.save(
+                core_req,
+                res,
+                backend=backend_name,
+                text_model=getattr(model, "text_model", ""),
+                image_model=getattr(model, "image_model", ""),
+                location=location,
+            )
+            for res in results
+        ]
         (store.root / "index.html").write_text(gallery.render(store.records()), encoding="utf-8")
-        return _public(rec)
+        return {**_public(recs[0]), "records": [_public(r) for r in recs]}
 
     @app.get("/images/{name}")
     def image(name: str) -> FileResponse:

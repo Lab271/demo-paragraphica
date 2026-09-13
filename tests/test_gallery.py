@@ -10,8 +10,8 @@ def rec(**kw):
         "lat": 52.378,
         "lon": 4.9,
         "style": "film noir",
-        "context": "main attraction",
-        "position": "normal",
+        "context": "landmark",
+        "position": "eye level",
         "quality": "medium",
         "time_of_day": "afternoon",
         "weather": "",
@@ -62,3 +62,16 @@ def test_controls_only_when_asked():
 def test_revised_prompt_shown_when_present():
     assert "Model note" not in render([rec()])
     assert "Model note</b> caption" in render([rec(revised_prompt="caption")])
+
+
+def test_weather_shown_and_time_controls():
+    html = render([rec(weather="The temperature is 10.06 degrees Celsius with few clouds.")], controls=True)
+    assert "few clouds" in html
+    assert 'name=time_of_day data-src="/times"' in html and "name=include_weather" in html
+
+
+def test_cards_carry_coordinates_and_viewer_loads_leaflet_lazily():
+    html = render([rec(lat=52.378, lon=4.9)])
+    assert 'data-lat="52.378" data-lon="4.9"' in html
+    assert "cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/" in html and "id=map" in html
+    assert "<script src=" not in html  # loaded on first open, not at page load

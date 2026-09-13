@@ -45,37 +45,68 @@ def test_gemini_aspect_mapping():
 
 
 class _Http(Exception):
-    def __init__(self, code):
-        super().__init__(f"http {code}")
+    def __init__(self, code, msg=""):
+        super().__init__(msg or f"http {code}")
         self.code = code
 
 
-def test_with_retry_retries_once_on_5xx(monkeypatch):
-    monkeypatch.setattr(backend.time, "sleep", lambda s: None)
+def _flaky(fails, exc):
     calls = []
 
-    def flaky():
+    def fn():
         calls.append(1)
-        if len(calls) == 1:
-            raise _Http(503)
+        if len(calls) <= fails:
+            raise exc
         return "ok"
 
-    assert backend.with_retry(flaky) == "ok" and len(calls) == 2
+    fn.calls = calls
+    return fn
 
 
-def test_with_retry_gives_up_and_wraps(monkeypatch):
+def test_with_retry_5xx_recovers_within_two_retries(monkeypatch):
+    slept = []
+    monkeypatch.setattr(backend.time, "sleep", slept.append)
+    fn = _flaky(2, _Http(503))
+    assert backend.with_retry(fn) == "ok" and len(fn.calls) == 3
+    assert slept == [2.0, 6.0]
+
+
+def test_with_retry_5xx_gives_up_after_two_retries(monkeypatch):
     monkeypatch.setattr(backend.time, "sleep", lambda s: None)
+    fn = _flaky(9, _Http(504))
     with pytest.raises(backend.TransientError):
-        backend.with_retry(lambda: (_ for _ in ()).throw(_Http(504)))
+        backend.with_retry(fn)
+    assert len(fn.calls) == 3
 
 
-def test_with_retry_does_not_retry_4xx(monkeypatch):
-    calls = []
+def test_with_retry_429_honours_short_retry_delay(monkeypatch):
+    slept = []
+    monkeypatch.setattr(backend.time, "sleep", slept.append)
+    fn = _flaky(1, _Http(429, "RESOURCE_EXHAUSTED ... {'@type': 'RetryInfo', 'retryDelay': '12s'}"))
+    assert backend.with_retry(fn) == "ok" and slept == [12.0]
 
-    def bad():
-        calls.append(1)
-        raise _Http(404)
 
+def test_with_retry_429_long_or_missing_delay_is_not_retried(monkeypatch):
+    monkeypatch.setattr(backend.time, "sleep", lambda s: pytest.fail("must not sleep"))
+    for msg in ("quota exceeded, 'retryDelay': '48s'", "daily quota exceeded"):
+        fn = _flaky(9, _Http(429, msg))
+        with pytest.raises(backend.TransientError):
+            backend.with_retry(fn)
+        assert len(fn.calls) == 1
+
+
+def test_with_retry_does_not_retry_other_4xx(monkeypatch):
+    monkeypatch.setattr(backend.time, "sleep", lambda s: pytest.fail("must not sleep"))
+    fn = _flaky(9, _Http(404))
     with pytest.raises(_Http):
-        backend.with_retry(bad)
-    assert len(calls) == 1
+        backend.with_retry(fn)
+    assert len(fn.calls) == 1
+
+
+def test_gemini_client_has_timeout_and_no_sdk_retries():
+    c = api._gemini_client.__wrapped__() if hasattr(api._gemini_client, "__wrapped__") else None
+    # Build the options the same way the factory does and check them, without a key.
+    from google.genai import types
+
+    opts = types.HttpOptions(timeout=api.GEMINI_TIMEOUT_MS, retry_options=types.HttpRetryOptions(attempts=1))
+    assert opts.timeout == 60_000 and opts.retry_options.attempts == 1 and c is None

@@ -44,7 +44,7 @@ ci: lint test ## Full local gate
 # when the variables are already exported: make run OP=
 
 LOCATION ?= Schiphol-Rijk
-STYLE ?= realistic
+STYLE ?= photo
 BACKEND ?= gemini
 OP ?= op run --env-file=op.env --
 

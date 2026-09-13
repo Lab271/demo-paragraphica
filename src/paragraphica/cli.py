@@ -7,6 +7,7 @@ import typer
 
 from paragraphica import api, core, gallery, prompts
 from paragraphica import backend as backends
+from paragraphica import context as ctxmod
 from paragraphica.store import Store
 
 app = typer.Typer(no_args_is_help=True, help="Terra Virtualis: imagine the view at a location.")
@@ -25,15 +26,31 @@ def generate(
     location: Annotated[str | None, typer.Option("--location", "-l", help="Place name (forward geocoded)")] = None,
     lat: Annotated[float | None, typer.Option(help="Latitude; overrides --location")] = None,
     lon: Annotated[float | None, typer.Option(help="Longitude; overrides --location")] = None,
-    style: Annotated[str, typer.Option("--style", "-s")] = "realistic",
-    context: Annotated[str, typer.Option("--context", "-c")] = "main attraction",
-    position: Annotated[str, typer.Option("--position", "-p")] = "normal",
+    style: Annotated[
+        str, typer.Option("--style", "-s", help="Look: " + " | ".join(prompts.LOOKS))
+    ] = prompts.DEFAULT_LOOK,
+    context: Annotated[
+        str, typer.Option("--context", "-c", help="Subject: " + " | ".join(prompts.SUBJECTS))
+    ] = prompts.DEFAULT_SUBJECT,
+    position: Annotated[
+        str, typer.Option("--position", "-p", help="Framing: " + " | ".join(prompts.FRAMINGS))
+    ] = prompts.DEFAULT_FRAMING,
     quality: Annotated[str, typer.Option(help="low | medium | high")] = "medium",
     backend: Annotated[
         str, typer.Option("--backend", "-b", help="Model backend (PARA_BACKEND)")
     ] = backends.DEFAULT_BACKEND,
     weather: Annotated[bool, typer.Option(help="Include current weather")] = False,
     time: Annotated[bool, typer.Option(help="Include local time of day")] = True,
+    time_of_day: Annotated[
+        str | None, typer.Option("--time-of-day", help="Override the clock: " + " | ".join(ctxmod.TIMES_OF_DAY))
+    ] = None,
+    wander: Annotated[
+        float, typer.Option("--wander", help="Metres: move to a random spot within this radius first (#22)")
+    ] = 0.0,
+    seed: Annotated[int | None, typer.Option(help="Reproducible wandering")] = None,
+    variants: Annotated[
+        int, typer.Option("--variants", "-n", min=1, max=4, help="Images for the same prompt (#23)")
+    ] = 1,
     dry_run: Annotated[bool, typer.Option("--dry-run", help="Print description + prompt, make no image call")] = False,
     out_dir: Annotated[
         Path, typer.Option("--out-dir", "-o", help="History store: images + history.jsonl + index.html")
@@ -44,9 +61,19 @@ def generate(
     _choice("context", context, prompts.CONTEXTS)
     _choice("position", position, prompts.POSITIONS)
     _choice("backend", backend, backends.BACKENDS)
+    if time_of_day is not None:
+        _choice("time-of-day", time_of_day, dict.fromkeys(ctxmod.TIMES_OF_DAY))
 
+    model = backends.make_backend(backend)
     if lat is None or lon is None:
-        lat, lon = api.call_mapbox_forward(location) if location else DEFAULT_LATLON
+        if location:
+            try:
+                found = ctxmod.geocode(location, model.describe)
+            except ctxmod.LocationNotFound:
+                raise typer.BadParameter(f"location not found: {location!r}", param_hint="--location") from None
+            lat, lon, location = found.lat, found.lon, found.name
+        else:
+            lat, lon = DEFAULT_LATLON
 
     req = core.Request(
         lat=lat,
@@ -57,12 +84,21 @@ def generate(
         include_time=time,
         include_weather=weather,
         quality=quality,
+        time_of_day=time_of_day,
+        wander_m=wander,
+        seed=seed,
     )
-    model = backends.make_backend(backend)
-    result = core.generate(req, model, dry_run=dry_run)
+    results = (
+        [core.generate(req, model, dry_run=dry_run)]
+        if dry_run or variants == 1
+        else core.generate_variants(req, model, variants)
+    )
+    result = results[0]
 
     typer.echo(f"Backend:     {backend}")
-    typer.echo(f"Location:    {result.context.address} ({lat:.6f}, {lon:.6f})")
+    typer.echo(
+        f"Location:    {result.context.address} ({result.context.lat or lat:.6f}, {result.context.lon or lon:.6f})"
+    )
     if result.context.time_of_day:
         typer.echo(f"Time:        {result.context.time_of_day}")
     if result.context.weather:
@@ -72,18 +108,19 @@ def generate(
     if dry_run:
         return
     store = Store(out_dir)
-    rec = store.save(
-        req,
-        result,
-        backend=backend,
-        text_model=getattr(model, "text_model", ""),
-        image_model=getattr(model, "image_model", ""),
-        location=location or "",
-    )
+    for res in results:
+        rec = store.save(
+            req,
+            res,
+            backend=backend,
+            text_model=getattr(model, "text_model", ""),
+            image_model=getattr(model, "image_model", ""),
+            location=location or "",
+        )
+        if res.revised_prompt:
+            typer.echo(f"Revised:     {res.revised_prompt}")
+        typer.echo(f"Image:       {store.root / rec.image}  ({rec.duration_s:g}s)")
     _write_gallery(store)
-    if result.revised_prompt:
-        typer.echo(f"Revised:     {result.revised_prompt}")
-    typer.echo(f"Image:       {store.root / rec.image}  ({rec.duration_s:g}s)")
 
 
 def _write_gallery(store: Store) -> Path:
@@ -120,8 +157,12 @@ def gallery_cmd(
 
 @app.command()
 def options() -> None:
-    """List the available styles, contexts and positions."""
-    for title, table in (("styles", prompts.STYLES), ("contexts", prompts.CONTEXTS), ("positions", prompts.POSITIONS)):
+    """List the vocabulary: looks, subjects, framings."""
+    for title, table in (
+        ("looks (--style)", prompts.LOOKS),
+        ("subjects (--context)", prompts.SUBJECTS),
+        ("framings (--position)", prompts.FRAMINGS),
+    ):
         typer.echo(f"{title}:")
         for key in table:
             typer.echo(f"  {key}")

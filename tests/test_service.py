@@ -14,28 +14,34 @@ class FakeBackend:
     image_model = "i"
 
     def describe(self, messages):
+        if messages[0]["content"] == service.ctxmod.GEOCODE_SYSTEM:
+            return '{"name": null}'  # the geocoder fallback declines: unknown places stay 404
         return "The Dom tower."
 
     def image(self, prompt, quality, size):
         return Generated(image=b"JPG", revised_prompt="note", mime_type="image/jpeg")
 
 
+UTRECHT = [
+    {
+        "properties": {"feature_type": "place", "full_address": "Utrecht, Netherlands"},
+        "geometry": {"coordinates": [5.12, 52.09]},
+    }
+]
+
+
 @pytest.fixture
 def client(monkeypatch, tmp_path):
     monkeypatch.setattr(backend, "make_backend", lambda name: FakeBackend())
     monkeypatch.setattr(core, "build_context", lambda *a, **k: CTX)
-    monkeypatch.setattr(
-        service.api,
-        "call_mapbox_forward",
-        lambda q: (52.09, 5.12) if q == "Utrecht" else (_ for _ in ()).throw(IndexError),
-    )
+    monkeypatch.setattr(service.ctxmod.api, "call_mapbox_forward", lambda q: UTRECHT if q == "Utrecht" else [])
     return TestClient(service.create_app(Store(tmp_path)))
 
 
 def test_vocabulary_endpoints(client):
     assert "polaroid" in client.get("/styles").json()
-    assert "main attraction" in client.get("/contexts").json()
-    assert "low angle" in client.get("/positions").json()
+    assert "landmark" in client.get("/contexts").json()
+    assert "aerial" in client.get("/positions").json()
     assert client.get("/healthz").json()["images"] == 0
 
 
@@ -77,3 +83,29 @@ def test_transient_model_error_is_503(client, monkeypatch):
     monkeypatch.setattr(FakeBackend, "describe", boom)
     r = client.post("/generate", json={"lat": 52.09, "lon": 5.12})
     assert r.status_code == 503 and "temporarily" in r.json()["detail"]
+
+
+def test_times_and_override(client, monkeypatch):
+    times = client.get("/times").json()
+    assert "dark night" in times
+    seen = {}
+    real = core.generate_variants
+
+    def spy(req, backend, n, **kw):
+        seen["req"] = req
+        return real(req, backend, n, **kw)
+
+    monkeypatch.setattr(service.core, "generate_variants", spy)
+    r = client.post("/generate", json={"lat": 52.09, "lon": 5.12, "time_of_day": "dark night", "include_weather": True})
+    assert r.status_code == 200, r.text
+    assert seen["req"].time_of_day == "dark night" and seen["req"].include_weather is True
+    assert client.post("/generate", json={"lat": 1, "lon": 1, "time_of_day": "teatime"}).status_code == 422
+
+
+def test_variants_return_all_records(client):
+    r = client.post("/generate", json={"lat": 52.09, "lon": 5.12, "variants": 2})
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert len(body["records"]) == 2 and body["image_url"] == body["records"][0]["image_url"]
+    assert client.get("/healthz").json()["images"] == 2
+    assert client.post("/generate", json={"lat": 1, "lon": 1, "variants": 9}).status_code == 422

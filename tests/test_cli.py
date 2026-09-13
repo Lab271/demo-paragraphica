@@ -31,7 +31,7 @@ def test_dry_run_prints_prompt_without_image(monkeypatch):
     result = runner.invoke(cli.app, ["generate", "--lat", "52.09", "--lon", "5.12", "--style", "lego", "--dry-run"])
     assert result.exit_code == 0, result.output
     assert "Description: The Dom tower." in result.output
-    assert "Prompt:      Give a typical view of the Utrecht, Netherlands." in result.output
+    assert "Prompt:      The view from Utrecht, Netherlands." in result.output
     assert FakeBackend.image_calls == 0
     assert "Image:" not in result.output
 
@@ -40,7 +40,7 @@ def test_generate_stores_image_history_and_gallery(monkeypatch, tmp_path):
     _offline(monkeypatch)
     result = runner.invoke(cli.app, ["generate", "--lat", "52.09", "--lon", "5.12", "--out-dir", str(tmp_path)])
     assert result.exit_code == 0, result.output
-    images = sorted(tmp_path.glob("*-utrecht-realistic.jpg"))  # suffix follows the returned format
+    images = sorted(tmp_path.glob("*-utrecht-photo.jpg"))  # suffix follows the returned format
     assert len(images) == 1 and images[0].read_bytes() == b"JPG"
     assert "Image:" in result.output and images[0].name in result.output
     assert (tmp_path / "history.jsonl").read_text().count("\n") == 1
@@ -71,7 +71,7 @@ def test_unknown_style_is_rejected():
 def test_options_lists_vocabulary():
     result = runner.invoke(cli.app, ["options"])
     assert result.exit_code == 0
-    assert "film noir" in result.output and "three highlights" in result.output
+    assert "film noir" in result.output and "three highlights" in result.output and "aerial" in result.output
 
 
 def test_models_lists_and_filters(monkeypatch):
@@ -83,3 +83,14 @@ def test_models_lists_and_filters(monkeypatch):
     result = runner.invoke(cli.app, ["models"])
     assert result.exit_code == 0
     assert "gemini-3.1-flash-image" in result.output and "veo-3" not in result.output
+
+
+def test_variants_write_n_images(monkeypatch, tmp_path):
+    _offline(monkeypatch)
+    result = runner.invoke(
+        cli.app, ["generate", "--lat", "52.09", "--lon", "5.12", "--variants", "3", "--out-dir", str(tmp_path)]
+    )
+    assert result.exit_code == 0, result.output
+    assert len(list(tmp_path.glob("*.jpg"))) == 3 and FakeBackend.image_calls == 3
+    assert (tmp_path / "history.jsonl").read_text().count("\n") == 3
+    assert result.output.count("Image:") == 3

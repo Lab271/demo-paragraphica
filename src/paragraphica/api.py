@@ -21,12 +21,13 @@ def call_mapbox(lat: float, lon: float) -> dict:
     return response.json()["features"][0]
 
 
-def call_mapbox_forward(query: str) -> tuple[float, float]:
-    """Forward geocode a free-text place name to (lat, lon)."""
-    api_url = "https://api.mapbox.com/search/geocode/v6/forward?q={}&limit=1&access_token={}"
-    response = requests.get(api_url.format(requests.utils.quote(query), _mapbox_token()), timeout=TIMEOUT)
-    lon, lat = response.json()["features"][0]["geometry"]["coordinates"]
-    return lat, lon
+def call_mapbox_forward(query: str, limit: int = 3) -> list[dict]:
+    """Forward geocode a free-text place name; returns Mapbox v6 features, best first.
+    Callers judge them (context.pick_mapbox_hit): with an unknown name Mapbox happily
+    returns a street called 'Amsterdam' on another continent (#29)."""
+    api_url = "https://api.mapbox.com/search/geocode/v6/forward?q={}&limit={}&access_token={}"
+    response = requests.get(api_url.format(requests.utils.quote(query), limit, _mapbox_token()), timeout=TIMEOUT)
+    return response.json().get("features", [])
 
 
 def call_openweathermap(lat: float, lon: float) -> dict:
@@ -37,6 +38,20 @@ def call_openweathermap(lat: float, lon: float) -> dict:
 
 
 # --- Google Gemini (google-genai; key from GEMINI_API_KEY or GOOGLE_API_KEY) ---
+
+GEMINI_TIMEOUT_MS = 60_000
+
+
+def _gemini_client():
+    """Our timeout, and the SDK's own retry loop disabled: backend.with_retry is the
+    only retry, so a hung call cannot block a dial press for minutes (#28)."""
+    from google import genai
+    from google.genai import types
+
+    return genai.Client(
+        http_options=types.HttpOptions(timeout=GEMINI_TIMEOUT_MS, retry_options=types.HttpRetryOptions(attempts=1))
+    )
+
 
 # Gemini image models take an aspect ratio + 1K/2K/4K instead of WxH + low/medium/high.
 GEMINI_ASPECT = {"1024x1024": "1:1", "1536x1024": "3:2", "1024x1536": "2:3"}
@@ -52,12 +67,11 @@ def _afc_disabled():
 
 
 def call_gemini_text(model: str, messages: list[dict], max_tokens: int = 400, temperature: float = 0.1) -> str:
-    from google import genai
     from google.genai import types
 
     system = " ".join(m["content"] for m in messages if m["role"] == "system") or None
     user = "\n".join(m["content"] for m in messages if m["role"] == "user")
-    client = genai.Client()
+    client = _gemini_client()
     res = client.models.generate_content(
         model=model,
         contents=user,
@@ -75,10 +89,9 @@ def call_gemini_image(prompt: str, model: str, quality: str, size: str) -> tuple
     """Image via generate_content (Imagen endpoints were shut down Aug 2026).
     Returns (accompanying text if any, image bytes, mime type). The Developer API
     picks the format itself (JPEG in practice); output_mime_type is Vertex-only."""
-    from google import genai
     from google.genai import types
 
-    client = genai.Client()
+    client = _gemini_client()
     res = client.models.generate_content(
         model=model,
         contents=prompt,
