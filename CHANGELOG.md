@@ -2,6 +2,26 @@
 
 All notable changes to Terra Virtualis (demo-paragraphica). Format: [Keep a Changelog](https://keepachangelog.com/), versions follow SemVer.
 
+## [0.5.0] - 2026-09-13
+
+Web UI controls, vocabulary redesign, geocoding variety and robustness (#13, #16, #17, #18, #22, #23, #24, #28, #29).
+
+### Added
+- `Request.time_of_day` overrides the clock; CLI `--time-of-day`, `GET /times`. Form gets a "now (local time)" select and a weather checkbox; cards and detail show the weather string (#18).
+- Map beside the picture in the detail overlay: Leaflet 1.9.4 from cdnjs + OpenStreetMap, loaded on first open so the static page stays offline-capable; hidden in Full mode (#17).
+- `context.wander()`: random point within N metres, then reverse geocode, so the camera lands on a real street elsewhere in town. `Request.wander_m` / `seed`, CLI `--wander` / `--seed`; records store the resolved lat/lon (#22).
+- `core.generate_variants()`: one description, N images. CLI `--variants 1..4`; service `variants` returns the first record plus `records: [...]` (#23).
+- Looks: dutch masters, cyanotype, stained glass, tin toy, risograph, thermal, elevation, frank miller with Sin City cues (18 looks total) (#24, #13).
+
+### Changed
+- Vocabulary redesigned as three dials: Look (photo, polaroid, film noir, impressionist, woodblock, blueprint, isometric, lego, coloring page, pixel, ...), Framing (eye level, wide, low, aerial, street) and Subject (landmark, people, nature, night life, food, three highlights). Every fragment is one concrete visual sentence; system prompt rewritten as a location-scout brief. `STYLES`/`POSITIONS`/`CONTEXTS` kept as aliases, request/record fields and API paths unchanged. Defaults: photo / eye level / landmark (#13).
+- Gallery form and controls complete the generate-from-gallery flow; the page reloads on success (#16).
+
+### Fixed
+- Hybrid geocoder: a Mapbox hit is accepted only if it is a named place mentioning every query word; otherwise a small Gemini text call returns `{name, lat, lon}` or null, and only then is the location a 404. The resolved name is stored instead of the raw input. "amsterdam wallen" no longer renders near Rouen (#29).
+- Gemini calls: 60 s timeout, SDK retries off, 5xx backoff 2 s / 6 s, short 429 `retryDelay` honoured (#28).
+- Test warnings quieted: httpx 2 for starlette's TestClient, anyio alias warning ignored.
+
 ## [0.4.0] - 2026-09-11
 
 HTTP service and interactive gallery (#9, part of #16).
