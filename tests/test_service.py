@@ -109,3 +109,10 @@ def test_variants_return_all_records(client):
     assert len(body["records"]) == 2 and body["image_url"] == body["records"][0]["image_url"]
     assert client.get("/healthz").json()["images"] == 2
     assert client.post("/generate", json={"lat": 1, "lon": 1, "variants": 9}).status_code == 422
+
+
+def test_caption_flag_reaches_the_prompt(client):
+    r = client.post("/generate", json={"lat": 52.09, "lon": 5.12, "style": "polaroid", "caption": True})
+    assert r.status_code == 200, r.text
+    assert "lettered into the picture" in r.json()["prompt"]
+    assert r.json()["caption"] is True

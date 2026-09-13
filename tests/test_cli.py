@@ -94,3 +94,10 @@ def test_variants_write_n_images(monkeypatch, tmp_path):
     assert len(list(tmp_path.glob("*.jpg"))) == 3 and FakeBackend.image_calls == 3
     assert (tmp_path / "history.jsonl").read_text().count("\n") == 3
     assert result.output.count("Image:") == 3
+
+
+def test_caption_option_asks_for_lettering(monkeypatch):
+    _offline(monkeypatch)
+    result = runner.invoke(cli.app, ["generate", "--lat", "52.09", "--lon", "5.12", "--caption", "--dry-run"])
+    assert result.exit_code == 0, result.output
+    assert 'The place name "Utrecht" lettered into the picture' in result.output

@@ -152,6 +152,7 @@ CONTROLS = """
   <select name=quality><option>low</option><option selected>medium</option><option>high</option></select>
   <select name=time_of_day data-src="/times" data-first="now (local time)"></select>
   <label><input type=checkbox name=include_weather> weather</label>
+  <label><input type=checkbox name=caption> caption</label>
   <button type=submit>Generate</button>
   <span id=status></span>
 </form>
@@ -172,6 +173,7 @@ form.addEventListener('submit', async ev => {
   ev.preventDefault();
   const body = Object.fromEntries(new FormData(form));
   body.include_weather = form.include_weather.checked;
+  body.caption = form.caption.checked;
   if (!body.time_of_day) delete body.time_of_day;
   btn.disabled = true; status.className = ''; const t0 = Date.now();
   ticker = setInterval(() => { status.textContent = `imagining ${body.location}… ${Math.round((Date.now()-t0)/1000)}s`; }, 250);
@@ -192,7 +194,13 @@ def _card(r: Record, image_base: str) -> str:
     when = r.timestamp.replace("T", " ")[:16]
     how = " · ".join(
         x
-        for x in (r.position if r.position not in ("normal", "eye level") else "", r.context, r.time_of_day, r.weather)
+        for x in (
+            r.position if r.position not in ("normal", "eye level") else "",
+            r.context,
+            r.time_of_day,
+            r.weather,
+            "captioned" if r.caption else "",
+        )
         if x
     )
     revised = f"<p class=prompt><b>Model note</b> {escape(r.revised_prompt)}</p>" if r.revised_prompt else ""

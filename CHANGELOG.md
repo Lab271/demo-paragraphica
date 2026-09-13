@@ -2,6 +2,20 @@
 
 All notable changes to Terra Virtualis (demo-paragraphica). Format: [Keep a Changelog](https://keepachangelog.com/), versions follow SemVer.
 
+## [0.6.0] - 2026-09-13
+
+Text control and two Amsterdam framings (#25, #26).
+
+### Added
+- `--caption` / `Request.caption` / gallery checkbox: letters the place name into the picture as a postcard title. Stored on the record, default off (#25).
+- Framings `through a window` and `from a canal boat`; live 7-framing matrix recorded on #26, aerial kept (#26).
+
+### Changed
+- Every image prompt now ends with "No text, lettering or captions in the picture" unless `caption` is set; Gemini wrote dates on polaroids and comic captions unasked (#25).
+
+### Removed
+- `requirements.txt`: stale 2023 pins; `pyproject.toml` + `uv.lock` are the source of truth (#6).
+
 ## [0.5.0] - 2026-09-13
 
 Web UI controls, vocabulary redesign, geocoding variety and robustness (#13, #16, #17, #18, #22, #23, #24, #28, #29).

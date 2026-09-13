@@ -26,8 +26,16 @@ def test_describe_messages_omits_empty_parts():
 def test_build_prompt_every_look_and_framing(look, framing):
     prompt = prompts.build_prompt("Utrecht, Netherlands", "A canal.", look, framing)
     assert prompt.startswith("The view from Utrecht, Netherlands. A canal.")
-    assert prompt.endswith(prompts.LOOKS[look])
+    assert prompt.endswith(prompts.LOOKS[look] + " " + prompts.NO_TEXT)
     assert "  " not in prompt
+
+
+def test_caption_letters_the_place_name_instead_of_forbidding_text():
+    off = prompts.build_prompt("De Wallen, Amsterdam, Netherlands", "Canal.", "polaroid")
+    on = prompts.build_prompt("De Wallen, Amsterdam, Netherlands", "Canal.", "polaroid", caption=True)
+    assert off.endswith(prompts.NO_TEXT) and "De Wallen" not in off.split("Canal.")[1]
+    assert on.endswith('The place name "De Wallen" lettered into the picture as a title, like a postcard.')
+    assert prompts.NO_TEXT not in on
 
 
 def test_fragments_are_one_concrete_sentence():

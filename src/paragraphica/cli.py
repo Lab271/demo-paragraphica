@@ -51,6 +51,7 @@ def generate(
     variants: Annotated[
         int, typer.Option("--variants", "-n", min=1, max=4, help="Images for the same prompt (#23)")
     ] = 1,
+    caption: Annotated[bool, typer.Option("--caption", help="Letter the place name into the picture (#25)")] = False,
     dry_run: Annotated[bool, typer.Option("--dry-run", help="Print description + prompt, make no image call")] = False,
     out_dir: Annotated[
         Path, typer.Option("--out-dir", "-o", help="History store: images + history.jsonl + index.html")
@@ -87,6 +88,7 @@ def generate(
         time_of_day=time_of_day,
         wander_m=wander,
         seed=seed,
+        caption=caption,
     )
     results = (
         [core.generate(req, model, dry_run=dry_run)]

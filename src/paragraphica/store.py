@@ -37,6 +37,7 @@ class Record:
     image: str  # file name relative to the store root
     duration_s: float
     wander_m: float = 0.0
+    caption: bool = False
     extra: dict = field(default_factory=dict)
 
 
@@ -102,6 +103,7 @@ class Store:
             image=path.name,
             duration_s=round(result.duration_s, 1),
             wander_m=req.wander_m,
+            caption=req.caption,
         )
         with self.history_path.open("a", encoding="utf-8") as f:
             data = asdict(rec)

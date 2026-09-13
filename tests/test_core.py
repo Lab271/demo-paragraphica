@@ -25,7 +25,7 @@ def test_dry_run_spends_no_image_call():
     assert result.image is None
     assert result.description == "The Dom tower."
     assert result.prompt.startswith("The view from Utrecht, Netherlands. The Dom tower.")
-    assert result.prompt.endswith(prompts.LOOKS["lego"])
+    assert result.prompt.endswith(prompts.LOOKS["lego"] + " " + prompts.NO_TEXT)
 
 
 def test_full_run_returns_image_and_revised_prompt():
