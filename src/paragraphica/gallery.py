@@ -70,6 +70,8 @@ button:active { transform:scale(.98); }
 #view.full .bar, #view.full .info, #view.full #map { display:none; }
 #view.full .stage { grid-template-columns:1fr; padding:0; }
 #view.full .stage img { max-height:100vh; }
+#view.playing .bar [data-act=play] { background:var(--c-panel); }
+#view.playing .nav { display:none; }
 form#gen { display:flex; flex-wrap:wrap; gap:.6rem; align-items:center; padding:1rem 1.5rem; background:var(--c-canvas-2); border-bottom:1px solid var(--c-border); }
 form#gen label { color:var(--c-muted); display:flex; gap:.4rem; align-items:center; }
 form#gen input[name=location] { flex:1 1 14rem; min-width:10rem; }
@@ -104,7 +106,7 @@ sel.addEventListener('change', () => {
 
 VIEWER = """
 <div id=view role=dialog aria-modal=true aria-label="Image detail">
-  <div class=bar><span class=pos></span><button data-act=full title="Only the picture (F)">full</button><button data-act=close title="Close (Esc)">close</button></div>
+  <div class=bar><span class=pos></span><button data-act=play title="Slideshow (P)">play</button><button data-act=full title="Only the picture (F)">full</button><button data-act=close title="Close (Esc)">close</button></div>
   <div class=stage><button class="nav prev" data-act=prev title="Previous (←)">‹</button><div class=pic><img alt=""></div><div id=map></div><button class="nav next" data-act=next title="Next (→)">›</button></div>
   <div class=info><div class=meta></div><h2></h2><p class=desc></p><p class=prompt></p><p class=note></p></div>
 </div>
@@ -112,7 +114,7 @@ VIEWER = """
 
 VIEWER_JS = """
 const view = document.getElementById('view');
-const cards = () => [...document.querySelectorAll('article')];
+const cards = () => [...document.querySelectorAll('article')].filter(a => !a.hidden);
 let cur = -1;
 function show(i) {
   const list = cards(); if (!list.length) return;
@@ -156,10 +158,23 @@ function showMap(lat, lon, label) {
     setTimeout(() => map.invalidateSize(), 50);
   }).catch(() => { el.textContent = `${lat.toFixed(5)}, ${lon.toFixed(5)} (map unavailable offline)`; });
 }
-function close() { view.classList.remove('open', 'full'); document.body.style.overflow = ''; history.replaceState(null, '', location.pathname); }
-document.querySelectorAll('article a').forEach((a, i) => a.addEventListener('click', ev => { ev.preventDefault(); show(i); }));
+// Slideshow (#36): full-screen, newest first, one picture every `every` ms; any interaction pauses.
+let timer = null, every = 8000;
+function play(on) {
+  clearInterval(timer); timer = null;
+  view.classList.toggle('playing', on);
+  view.querySelector('[data-act=play]').textContent = on ? 'pause' : 'play';
+  if (!on) return;
+  if (!view.classList.contains('open')) show(0);
+  view.classList.add('full');
+  timer = setInterval(() => show(cur + 1), every);
+}
+function close() { play(false); view.classList.remove('open', 'full'); document.body.style.overflow = ''; history.replaceState(null, '', location.pathname); }
+document.querySelectorAll('article a').forEach(a => a.addEventListener('click', ev => { ev.preventDefault(); show(cards().indexOf(a.closest('article'))); }));
 view.addEventListener('click', ev => {
   const act = ev.target.dataset.act;
+  if (act === 'play') { play(!timer); return; }
+  if (timer) play(false);
   if (act === 'close') close();
   else if (act === 'prev') show(cur - 1);
   else if (act === 'next') show(cur + 1);
@@ -167,7 +182,9 @@ view.addEventListener('click', ev => {
   else if (ev.target.tagName === 'IMG' && view.classList.contains('full')) view.classList.remove('full');
 });
 document.addEventListener('keydown', ev => {
+  if (ev.key.toLowerCase() === 'p') { play(!timer); return; }
   if (!view.classList.contains('open')) return;
+  if (timer) play(false);
   if (ev.key === 'Escape') close();
   else if (ev.key === 'ArrowLeft') show(cur - 1);
   else if (ev.key === 'ArrowRight') show(cur + 1);
@@ -175,6 +192,8 @@ document.addEventListener('keydown', ev => {
 });
 const hash = parseInt(location.hash.slice(1), 10);
 if (hash > 0) show(hash - 1);
+const q = new URLSearchParams(location.search).get('play');  // ?play or ?play=12 (seconds)
+if (q !== null) { every = (parseInt(q, 10) || 8) * 1000; play(true); }
 """
 
 CONTROLS = """

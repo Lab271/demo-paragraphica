@@ -83,3 +83,10 @@ def test_lab271_lockup_and_slash_pair_present():
     assert 'class="slash tq"' in html and 'class="slash or"' in html
     assert "#1E80ED" in html  # cobalt: the lockup and nowhere else
     assert html.count("#1E80ED") == 1
+
+
+def test_slideshow_controls_and_url_start():
+    html = render([rec()])
+    assert "data-act=play" in html and "=== 'p'" in html
+    assert "URLSearchParams(location.search).get('play')" in html and "every = 8000" in html
+    assert "filter(a => !a.hidden)" in html  # the look filter drives the deck

@@ -101,3 +101,10 @@ def test_caption_option_asks_for_lettering(monkeypatch):
     result = runner.invoke(cli.app, ["generate", "--lat", "52.09", "--lon", "5.12", "--caption", "--dry-run"])
     assert result.exit_code == 0, result.output
     assert 'The place name "Utrecht" lettered into the picture' in result.output
+
+
+def test_gallery_play_opens_slideshow_url(monkeypatch, tmp_path):
+    opened = []
+    monkeypatch.setattr(cli.typer, "launch", lambda url: opened.append(url))
+    assert runner.invoke(cli.app, ["gallery", "--out-dir", str(tmp_path), "--play"]).exit_code == 0
+    assert opened == [(tmp_path / "index.html").resolve().as_uri() + "?play"]
