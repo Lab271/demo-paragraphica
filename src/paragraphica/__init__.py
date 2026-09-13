@@ -1,3 +1,3 @@
 """Terra Virtualis — a lensless camera that imagines the view from location data."""
 
-__version__ = "0.6.0"
+__version__ = "0.7.0"

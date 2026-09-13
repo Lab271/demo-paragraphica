@@ -39,7 +39,7 @@ def test_render_cards_newest_first_and_escaped():
     assert "Trams &amp; &lt;crowds&gt;." in html
     assert '<option value="film noir">' in html and '<option value="lego">' in html
     assert 'data-style="film noir"' in html
-    assert "gemini-3.1-flash-image · 20.5s" in html
+    assert "gemini-3.1-flash-image \\ 20.5s" in html
 
 
 def test_image_base_prefixes_paths():
@@ -60,8 +60,8 @@ def test_controls_only_when_asked():
 
 
 def test_revised_prompt_shown_when_present():
-    assert "Model note" not in render([rec()])
-    assert "Model note</b> caption" in render([rec(revised_prompt="caption")])
+    assert "model note" not in render([rec()])
+    assert "model note</b> caption" in render([rec(revised_prompt="caption")])
 
 
 def test_weather_shown_and_time_controls():
@@ -75,3 +75,11 @@ def test_cards_carry_coordinates_and_viewer_loads_leaflet_lazily():
     assert 'data-lat="52.378" data-lon="4.9"' in html
     assert "cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/" in html and "id=map" in html
     assert "<script src=" not in html  # loaded on first open, not at page load
+
+
+def test_lab271_lockup_and_slash_pair_present():
+    html = render([rec()])
+    assert 'aria-label="LAB271"' in html and 'aria-label="Schuberg Philis"' in html
+    assert 'class="slash tq"' in html and 'class="slash or"' in html
+    assert "#1E80ED" in html  # cobalt: the lockup and nowhere else
+    assert html.count("#1E80ED") == 1
