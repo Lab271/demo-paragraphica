@@ -130,3 +130,9 @@ def test_gallery_play_opens_slideshow_url(monkeypatch, tmp_path):
     monkeypatch.setattr(cli.typer, "launch", lambda url: opened.append(url))
     assert runner.invoke(cli.app, ["gallery", "--out-dir", str(tmp_path), "--play"]).exit_code == 0
     assert opened == [(tmp_path / "index.html").resolve().as_uri() + "?play"]
+
+
+def test_about_command():
+    result = runner.invoke(cli.app, ["about", "--backend", "openrouter"])
+    assert result.exit_code == 0
+    assert "Ilja Heitlager" in result.output and "openai/gpt-image-2.5-flare" in result.output

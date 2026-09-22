@@ -2,6 +2,13 @@
 
 All notable changes to Terra Virtualis (demo-paragraphica). Format: [Keep a Changelog](https://keepachangelog.com/), versions follow SemVer.
 
+## [0.10.0] - 2026-09-22
+
+About page (#42).
+
+### Added
+- `/about` in the house style: what Terra Virtualis is, who makes it (Ilja Heitlager, LAB271 \ Schuberg Philis, MIT), the backends with their defaults and the active one marked, and the image models grouped by provider, all built from `BACKENDS` / `IMAGE_MODELS` at request time. `/about.json` for machines, `terra about` for the terminal, an "about" link in the gallery header; the static page links to the repository (#42).
+
 ## [0.9.1] - 2026-09-22
 
 ### Fixed

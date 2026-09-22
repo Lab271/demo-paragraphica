@@ -98,3 +98,8 @@ def test_slideshow_controls_and_url_start():
     assert "data-act=play" in html and "=== 'p'" in html
     assert "URLSearchParams(location.search).get('play')" in html and "every = 8000" in html
     assert "filter(a => !a.hidden)" in html  # the look filter drives the deck
+
+
+def test_about_link_points_at_the_service_or_the_repo():
+    assert 'href="/about"' in render([rec()], controls=True)
+    assert 'href="https://github.com/Lab271/demo-paragraphica"' in render([rec()])

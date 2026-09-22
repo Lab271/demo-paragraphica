@@ -155,3 +155,14 @@ def test_provider_refusal_is_502_json(monkeypatch, tmp_path):
     c = TestClient(service.create_app(Store(tmp_path)))
     r = c.post("/generate", json={"lat": 52.37, "lon": 4.9})
     assert r.status_code == 502 and "content moderation" in r.json()["detail"]
+
+
+def test_about_page_and_json(client, openrouter_client):
+    assert client.get("/about.json").json()["backend"] == "gemini"
+    html = openrouter_client.get("/about").text
+    assert (
+        "Ilja Heitlager" in html
+        and "black-forest-labs/flux.2-pro" in html
+        and "openrouter<span class=tag>active" in html
+    )
+    assert 'href="/about"' in openrouter_client.get("/").text

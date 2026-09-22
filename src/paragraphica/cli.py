@@ -5,7 +5,7 @@ from typing import Annotated
 
 import typer
 
-from paragraphica import api, core, gallery, prompts
+from paragraphica import about, api, core, gallery, prompts
 from paragraphica import backend as backends
 from paragraphica import context as ctxmod
 from paragraphica.store import Store
@@ -202,6 +202,16 @@ def models(
     for name, acts in api.list_gemini_models():
         if (filter or "gemini") in name:
             typer.echo(f"{name:45} {acts}")
+
+
+@app.command("about")
+def about_cmd(
+    backend: Annotated[
+        str, typer.Option("--backend", "-b", help="Model backend (PARA_BACKEND)")
+    ] = backends.DEFAULT_BACKEND,
+) -> None:
+    """What Terra Virtualis is, who makes it, and the engines it runs on."""
+    typer.echo(about.text(about.about_data(backend)))
 
 
 @app.command()

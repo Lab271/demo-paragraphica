@@ -13,7 +13,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel, Field
 
-from paragraphica import __version__, core, gallery, prompts
+from paragraphica import __version__, about, core, gallery, prompts
 from paragraphica import backend as backends
 from paragraphica import context as ctxmod
 from paragraphica.context import TIMES_OF_DAY
@@ -147,6 +147,14 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
     @app.get("/", response_class=HTMLResponse)
     def index() -> str:
         return gallery.render(store.records(), image_base="/images/", controls=True)
+
+    @app.get("/about.json")
+    def about_json() -> dict:
+        return about.about_data(backend_name)
+
+    @app.get("/about", response_class=HTMLResponse)
+    def about_page() -> str:
+        return about.render(about.about_data(backend_name))
 
     return app
 
