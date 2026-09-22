@@ -48,6 +48,7 @@ def generate(
     time_of_day: Annotated[
         str | None, typer.Option("--time-of-day", help="Override the clock: " + " | ".join(ctxmod.TIMES_OF_DAY))
     ] = None,
+    era: Annotated[str | None, typer.Option("--era", help="The age dial (#47): " + " | ".join(prompts.ERAS))] = None,
     wander: Annotated[
         float, typer.Option("--wander", help="Metres: move to a random spot within this radius first (#22)")
     ] = 0.0,
@@ -70,6 +71,8 @@ def generate(
         _choice("time-of-day", time_of_day, dict.fromkeys(ctxmod.TIMES_OF_DAY))
     if image_model is not None:
         _choice("model", image_model, backends.IMAGE_MODELS)
+    if era is not None:
+        _choice("era", era, prompts.ERAS)
 
     model = backends.make_backend(backend)
     if lat is None or lon is None:
@@ -93,6 +96,7 @@ def generate(
         quality=quality,
         image_model=backends.IMAGE_MODELS[image_model] if image_model else None,
         time_of_day=time_of_day,
+        era=era,
         wander_m=wander,
         seed=seed,
         caption=caption,
@@ -110,6 +114,8 @@ def generate(
     )
     if result.context.time_of_day:
         typer.echo(f"Time:        {result.context.time_of_day}")
+    if era:
+        typer.echo(f"Era:         {era}")
     if result.context.weather:
         typer.echo(f"Weather:     {result.context.weather}")
     typer.echo(f"Description: {result.description}")
@@ -169,11 +175,12 @@ def gallery_cmd(
 
 @app.command()
 def options() -> None:
-    """List the vocabulary: looks, subjects, framings."""
+    """List the vocabulary: looks, subjects, framings, eras."""
     for title, table in (
         ("looks (--style)", prompts.LOOKS),
         ("subjects (--context)", prompts.SUBJECTS),
         ("framings (--position)", prompts.FRAMINGS),
+        ("eras (--era)", prompts.ERAS),
     ):
         typer.echo(f"{title}:")
         for key in table:

@@ -174,3 +174,18 @@ def test_static_exploded_view_is_served_and_on_the_about_page(client):
     assert r.status_code == 200 and r.headers["content-type"] == "image/jpeg" and len(r.content) > 50_000
     assert client.get("/static/../pyproject.toml").status_code == 404
     assert client.get("/static/nope.jpg").status_code == 404
+
+
+def test_eras_endpoint_and_override(client, monkeypatch):
+    assert client.get("/eras").json()[0] == "1650"
+    seen = {}
+    real = core.generate_variants
+
+    def spy(req, model, n, **kw):
+        seen["req"] = req
+        return real(req, model, n, **kw)
+
+    monkeypatch.setattr(core, "generate_variants", spy)
+    r = client.post("/generate", json={"lat": 52.09, "lon": 5.12, "era": "ice age"})
+    assert r.status_code == 200 and seen["req"].era == "ice age" and r.json()["era"] == "ice age"
+    assert client.post("/generate", json={"lat": 1, "lon": 1, "era": "1066"}).status_code == 422

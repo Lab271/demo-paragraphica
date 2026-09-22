@@ -35,6 +35,7 @@ class GenerateRequest(BaseModel):
     include_time: bool = True
     include_weather: bool = False
     time_of_day: str | None = Field(None, description="Override the clock; one of GET /times")
+    era: str | None = Field(None, description="The age dial; one of GET /eras, None = today")
     wander_m: float = Field(0.0, ge=0, le=20000, description="Move to a random spot within this radius first")
     seed: int | None = None
     variants: int = Field(1, ge=1, le=4, description="Images for the same prompt")
@@ -70,6 +71,10 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
         """Image models selectable per request (label -> slug); empty unless the backend is openrouter."""
         return backends.IMAGE_MODELS if backend_name == "openrouter" else {}
 
+    @app.get("/eras")
+    def eras() -> list[str]:
+        return list(prompts.ERAS)
+
     @app.get("/times")
     def times() -> list[str]:
         return list(TIMES_OF_DAY)
@@ -88,6 +93,8 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
             _check("time_of_day", req.time_of_day, dict.fromkeys(TIMES_OF_DAY))
         if req.image_model:
             _check("image_model", req.image_model, models())
+        if req.era:
+            _check("era", req.era, prompts.ERAS)
         model = backends.make_backend(backend_name)
         location = req.location or ""
         if req.lat is None or req.lon is None:
@@ -114,6 +121,7 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
             quality=req.quality,
             image_model=backends.IMAGE_MODELS[req.image_model] if req.image_model else None,
             time_of_day=req.time_of_day or None,
+            era=req.era or None,
             wander_m=req.wander_m,
             seed=req.seed,
             caption=req.caption,

@@ -73,3 +73,9 @@ def test_wander_moves_the_geocoded_point(monkeypatch):
     assert seen[0] != (52.378, 4.9) and (r.context.lat, r.context.lon) == seen[0]
     r2 = generate(Request(lat=52.378, lon=4.9, wander_m=1000, seed=1), FakeBackend(), dry_run=True)
     assert (r2.context.lat, r2.context.lon) == seen[0]  # seeded: same spot
+
+
+def test_era_is_a_request_field_not_a_context_field():
+    backend = FakeBackend()
+    result = generate(Request(lat=1, lon=1, era="2050"), backend, dry_run=True, context=CTX)
+    assert "Set in 2050" in result.prompt and result.context.time_of_day == "morning"

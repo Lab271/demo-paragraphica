@@ -60,3 +60,18 @@ def test_aliases_and_defaults():
     )
     assert prompts.DEFAULT_LOOK in prompts.LOOKS and prompts.DEFAULT_FRAMING in prompts.FRAMINGS
     assert prompts.FRAMINGS[prompts.DEFAULT_FRAMING] == ""
+
+
+def test_era_reaches_scout_and_painter():
+    msgs = prompts.describe_messages("landmark", CTX, era="1650")
+    assert "as it looked in 1650" in msgs[1]["content"] and "Describe that time, not today" in msgs[1]["content"]
+    assert "It is afternoon." in msgs[1]["content"]
+    prompt = prompts.build_prompt(CTX.address, "Gables.", "photo", era="1650")
+    assert prompt.index("Gables.") < prompt.index("Set in 1650") < prompt.index(prompts.LOOKS["photo"])
+    assert "Set in" not in prompts.build_prompt(CTX.address, "Gables.", "photo")
+
+
+def test_future_eras_ask_for_plausibility_and_every_era_has_two_lines():
+    assert "will plausibly look" in prompts.ERAS["2200"][0]
+    assert all(len(v) == 2 and v[0] and v[1] for v in prompts.ERAS.values())
+    assert next(iter(prompts.ERAS)) == "1650" and "ice age" in prompts.ERAS

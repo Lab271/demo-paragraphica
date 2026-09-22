@@ -20,6 +20,7 @@ class Request:
     include_time: bool = True
     include_weather: bool = False
     time_of_day: str | None = None  # override the clock, e.g. 'dark night' for a day/night pair
+    era: str | None = None  # the age dial: a key of prompts.ERAS, None = today (#47)
     quality: str = "medium"
     size: str = "1024x1024"
     image_model: str | None = None  # IMAGE_MODELS slug; None = backend default (#38)
@@ -49,8 +50,10 @@ def _prepare(req: Request, backend: Backend, context: Context | None) -> tuple[C
     if req.time_of_day:
         ctx = replace(ctx, time_of_day=req.time_of_day)
     t0 = time.perf_counter()
-    description = backend.describe(prompts.describe_messages(req.context, ctx))
-    prompt = prompts.build_prompt(ctx.address, description, req.style, req.position, req.main_prompt, req.caption)
+    description = backend.describe(prompts.describe_messages(req.context, ctx, era=req.era))
+    prompt = prompts.build_prompt(
+        ctx.address, description, req.style, req.position, req.main_prompt, req.caption, era=req.era
+    )
     return ctx, description, prompt, t0
 
 

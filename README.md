@@ -16,7 +16,8 @@ Then, for the developer loop:
     make run LOCATION="Amsterdam" STYLE="film noir"       # image + history line in output/, rebuilds output/index.html
     make history                                          # recent runs
     make gallery                                          # open the static gallery page
-    uv run terra options                                  # the vocabulary: looks, subjects, framings
+    uv run terra options                                  # the vocabulary: looks, subjects, framings, eras
+    make dry-run LOCATION="Nieuwmarkt, Amsterdam" ERA=1650  # the age dial: the same spot in another era
     make env-check && op run --env-file=op.env -- uv run terra models   # Gemini models your key can call
 ```
 `make help` lists everything. See `docs/plan-2026-09.md` for the rebuild plan.

@@ -136,3 +136,13 @@ def test_about_command():
     result = runner.invoke(cli.app, ["about", "--backend", "openrouter"])
     assert result.exit_code == 0
     assert "Ilja Heitlager" in result.output and "openai/gpt-image-2.5-flare" in result.output
+
+
+def test_era_option(monkeypatch, tmp_path):
+    _offline(monkeypatch)
+    args = ["generate", "--lat", "1", "--lon", "1", "--out-dir", str(tmp_path)]
+    result = runner.invoke(cli.app, [*args, "--era", "1900", "--dry-run"])
+    assert result.exit_code == 0 and "Era:         1900" in result.output and "Set in 1900" in result.output
+    result = runner.invoke(cli.app, [*args, "--era", "1066"])
+    assert result.exit_code != 0 and "unknown era" in result.output
+    assert "eras (--era)" in runner.invoke(cli.app, ["options"]).output
