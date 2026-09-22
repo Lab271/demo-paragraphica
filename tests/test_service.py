@@ -166,3 +166,11 @@ def test_about_page_and_json(client, openrouter_client):
         and "openrouter<span class=tag>active" in html
     )
     assert 'href="/about"' in openrouter_client.get("/").text
+
+
+def test_static_exploded_view_is_served_and_on_the_about_page(client):
+    assert 'src="/static/paragraphica-exploded.jpg"' in client.get("/about").text
+    r = client.get("/static/paragraphica-exploded.jpg")
+    assert r.status_code == 200 and r.headers["content-type"] == "image/jpeg" and len(r.content) > 50_000
+    assert client.get("/static/../pyproject.toml").status_code == 404
+    assert client.get("/static/nope.jpg").status_code == 404

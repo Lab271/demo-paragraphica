@@ -2,6 +2,11 @@
 
 All notable changes to Terra Virtualis (demo-paragraphica). Format: [Keep a Changelog](https://keepachangelog.com/), versions follow SemVer.
 
+## [0.11.0] - 2026-09-22
+
+### Added
+- Exploded-view illustration of the Paragraphica camera on `/about`, made by the camera's own engine (GPT Image 2.5 Flare via OpenRouter) from the design as documented by Bjørn Karmann: star-nosed sensor, the radius / seed / guidance dials, Raspberry Pi 4, GPS, battery, touchscreen. Shipped in the package under `static/`, served at `/static/{name}`.
+
 ## [0.10.0] - 2026-09-22
 
 About page (#42).
