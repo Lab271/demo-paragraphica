@@ -24,7 +24,9 @@ Then, for the developer loop:
 ## Service
 
 `make serve` runs the HTTP service on port 8471 with the keys injected by 1Password.
-The gallery is at `/`, the API is what the Pi client (#10) talks to:
+The gallery is at `/`, `/about` tells what it is, who makes it and which engines
+and image models it runs on (built from the code, `/about.json` for machines,
+`terra about` in the terminal), and the API is what the Pi client (#10) talks to:
 
 ```
     curl -s localhost:8471/healthz

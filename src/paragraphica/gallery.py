@@ -6,6 +6,8 @@ from html import escape
 from paragraphica.backend import MODEL_LABELS
 from paragraphica.store import Record
 
+REPO = "https://github.com/Lab271/demo-paragraphica"
+
 CSS = """
 /* Lab271 house style: the dark canvas of the Schuberg Philis brand, refracted (design system v1).
    Turquoise is the intent, orange is the truth: the one orange element on this surface is the
@@ -25,7 +27,9 @@ header .lockup svg { display:block; height:22px; width:auto; }
 header .lockup svg + svg { height:20px; }
 header h1 { margin:0; font-size:clamp(20px, 2.2vw, 26px); font-weight:900; letter-spacing:-.04em; line-height:1.09; }
 header .count { color:var(--c-muted); }
-header select { margin-left:auto; margin-right:4.5rem; }
+header select { margin-left:auto; }
+header a.nav { color:var(--c-tq); font-family:var(--mono); font-size:12.5px; letter-spacing:.06em; text-decoration:none; margin-right:4.5rem; }
+header a.nav:hover { text-decoration:underline; }
 header .slash { position:absolute; top:-12px; height:140%; border-radius:4px; transform:skewX(var(--angle-slash)); pointer-events:none; }
 header .slash.tq { right:2.4rem; width:13px; background:var(--c-tq); }
 header .slash.or { right:1.1rem; width:6px; background:var(--c-orange); border-radius:3px; }
@@ -60,7 +64,7 @@ button:active { transform:scale(.98); }
 #view .stage img { max-width:100%; max-height:100%; object-fit:contain; }
 #view #map { min-height:0; border-radius:12px 12px 12px 0; background:var(--c-canvas-2); border:1px solid var(--c-border); display:flex; align-items:center; justify-content:center; color:var(--c-muted); font-family:var(--mono); font-size:12.5px; text-align:center; padding:0 1rem; }
 #view #map.leaflet-container { padding:0; color:#333; }
-@media (max-width: 800px) { #view .stage { grid-template-columns:1fr; grid-template-rows:2fr 1fr; padding:0 .5rem; } header select { margin-right:3rem; } }
+@media (max-width: 800px) { #view .stage { grid-template-columns:1fr; grid-template-rows:2fr 1fr; padding:0 .5rem; } header a.nav { margin-right:3rem; } }
 #view .nav { position:absolute; top:50%; transform:translateY(-50%); height:48px; width:48px; padding:0; justify-content:center; font-size:1.6rem; font-family:var(--sans); opacity:.75; }
 #view .nav:hover { opacity:1; }
 #view .prev { left:1rem; } #view .next { right:1rem; }
@@ -289,12 +293,15 @@ def render(records: list[Record], title: str = "Terra Virtualis", image_base: st
     styles = sorted({r.style for r in recs})
     options = "".join(f'<option value="{escape(s)}">{escape(s)}</option>' for s in styles)
     cards = "".join(_card(r, image_base) for r in recs)
+    # The served page has /about; the static file points at the README instead (#42).
+    about = '<a class=nav href="/about">\\ about</a>' if controls else f'<a class=nav href="{REPO}">\\ about</a>'
     return f"""<!doctype html>
 <html lang=en><head><meta charset=utf-8><meta name=viewport content="width=device-width, initial-scale=1">
 <title>{escape(title)}</title><style>{CSS}</style></head>
 <body>
 <header>{LOCKUP}<h1>{escape(title)}</h1><span class=count>{len(recs)} images</span>
 <select id=style aria-label="Filter by look"><option value="">all looks</option>{options}</select>
+{about}
 <span class="slash tq"></span><span class="slash or"></span></header>
 {CONTROLS if controls else ""}
 <main>{cards}</main>
