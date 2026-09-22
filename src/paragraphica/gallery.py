@@ -3,6 +3,7 @@ opens from file:// and later from the Pi's screen."""
 
 from html import escape
 
+from paragraphica.backend import MODEL_LABELS
 from paragraphica.store import Record
 
 CSS = """
@@ -203,6 +204,7 @@ CONTROLS = """
   <select name=context data-src="/contexts" title="Subject"></select>
   <select name=position data-src="/positions" title="Framing"></select>
   <select name=quality><option>low</option><option selected>medium</option><option>high</option></select>
+  <select name=image_model data-src="/models" data-first="default model" title="Image model"></select>
   <select name=time_of_day data-src="/times" data-first="now (local time)"></select>
   <label><input type=checkbox name=include_weather> weather</label>
   <label><input type=checkbox name=caption> caption</label>
@@ -218,7 +220,9 @@ const btn = form.querySelector('button');
 for (const sel of form.querySelectorAll('select[data-src]')) {
   fetch(sel.dataset.src).then(r => r.json()).then(opts => {
     if (sel.dataset.first) { const o = document.createElement('option'); o.value = ''; o.textContent = sel.dataset.first; sel.append(o); }
-    for (const k of Array.isArray(opts) ? opts : Object.keys(opts)) { const o = document.createElement('option'); o.textContent = k; sel.append(o); }
+    const keys = Array.isArray(opts) ? opts : Object.keys(opts);
+    for (const k of keys) { const o = document.createElement('option'); o.textContent = k; sel.append(o); }
+    if (!keys.length) sel.hidden = true;  // e.g. /models when the backend has no model dial
   });
 }
 let ticker;
@@ -228,6 +232,7 @@ form.addEventListener('submit', async ev => {
   body.include_weather = form.include_weather.checked;
   body.caption = form.caption.checked;
   if (!body.time_of_day) delete body.time_of_day;
+  if (!body.image_model) delete body.image_model;
   btn.disabled = true; status.className = ''; const t0 = Date.now();
   ticker = setInterval(() => { status.textContent = `imagining ${body.location}… ${Math.round((Date.now()-t0)/1000)}s`; }, 250);
   try {
@@ -253,9 +258,11 @@ def _card(r: Record, image_base: str) -> str:
             r.time_of_day,
             r.weather,
             "captioned" if r.caption else "",
+            MODEL_LABELS.get(r.image_model, ""),
         )
         if x
     )
+    cost = f" \\ ${r.cost:.3f}" if r.cost is not None else ""
     revised = f"<p class=prompt><b>model note</b> {escape(r.revised_prompt)}</p>" if r.revised_prompt else ""
     src = escape(image_base + r.image)
     return f"""
@@ -264,7 +271,7 @@ def _card(r: Record, image_base: str) -> str:
   <div class=meta><span class=style>{escape(r.style)}</span><span class=when>{escape(when)}</span><span class=how>{escape(how)}</span></div>
   <h2>{escape(r.address)}</h2>
   <details>
-    <summary>description \\ prompt \\ {escape(r.image_model)} \\ {r.duration_s:g}s</summary>
+    <summary>description \\ prompt \\ {escape(r.image_model)} \\ {r.duration_s:g}s{cost}</summary>
     <p>{escape(r.description)}</p>
     <p class=prompt><b>prompt</b> {escape(r.prompt)}</p>
     {revised}

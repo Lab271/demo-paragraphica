@@ -36,6 +36,10 @@ def generate(
         str, typer.Option("--position", "-p", help="Framing: " + " | ".join(prompts.FRAMINGS))
     ] = prompts.DEFAULT_FRAMING,
     quality: Annotated[str, typer.Option(help="low | medium | high")] = "medium",
+    image_model: Annotated[
+        str | None,
+        typer.Option("--model", "-m", help="OpenRouter image model (#38): " + " | ".join(backends.IMAGE_MODELS)),
+    ] = None,
     backend: Annotated[
         str, typer.Option("--backend", "-b", help="Model backend (PARA_BACKEND)")
     ] = backends.DEFAULT_BACKEND,
@@ -64,6 +68,8 @@ def generate(
     _choice("backend", backend, backends.BACKENDS)
     if time_of_day is not None:
         _choice("time-of-day", time_of_day, dict.fromkeys(ctxmod.TIMES_OF_DAY))
+    if image_model is not None:
+        _choice("model", image_model, backends.IMAGE_MODELS)
 
     model = backends.make_backend(backend)
     if lat is None or lon is None:
@@ -85,6 +91,7 @@ def generate(
         include_time=time,
         include_weather=weather,
         quality=quality,
+        image_model=backends.IMAGE_MODELS[image_model] if image_model else None,
         time_of_day=time_of_day,
         wander_m=wander,
         seed=seed,
@@ -116,12 +123,13 @@ def generate(
             res,
             backend=backend,
             text_model=getattr(model, "text_model", ""),
-            image_model=getattr(model, "image_model", ""),
+            image_model=req.image_model or getattr(model, "image_model", ""),
             location=location or "",
         )
         if res.revised_prompt:
             typer.echo(f"Revised:     {res.revised_prompt}")
-        typer.echo(f"Image:       {store.root / rec.image}  ({rec.duration_s:g}s)")
+        cost = f", ${rec.cost:.3f}" if rec.cost is not None else ""
+        typer.echo(f"Image:       {store.root / rec.image}  ({rec.duration_s:g}s{cost})")
     _write_gallery(store)
 
 
@@ -142,7 +150,8 @@ def history(
         typer.echo(f"no history in {out_dir}")
         return
     for r in recs[-last:]:
-        typer.echo(f"{r.timestamp[:16].replace('T', ' ')}  {r.style:14} {r.address:40.40} {r.image}")
+        model = backends.MODEL_LABELS.get(r.image_model, r.image_model)
+        typer.echo(f"{r.timestamp[:16].replace('T', ' ')}  {r.style:14} {r.address:40.40} {model:22.22} {r.image}")
 
 
 @app.command("gallery")
@@ -173,11 +182,25 @@ def options() -> None:
 
 @app.command()
 def models(
-    filter: Annotated[str, typer.Option("--filter", "-f", help="Substring to match")] = "gemini",
+    filter: Annotated[str | None, typer.Option("--filter", "-f", help="Substring to match")] = None,
+    backend: Annotated[
+        str, typer.Option("--backend", "-b", help="Model backend (PARA_BACKEND)")
+    ] = backends.DEFAULT_BACKEND,
 ) -> None:
-    """List the Gemini models available to the configured key (needs GEMINI_API_KEY)."""
+    """List the models a backend offers. Gemini: every model the key can call
+    (needs GEMINI_API_KEY). OpenRouter: the curated image models, then `--filter`
+    searches the live catalogue."""
+    _choice("backend", backend, backends.BACKENDS)
+    if backend == "openrouter":
+        for label, slug in backends.IMAGE_MODELS.items():
+            typer.echo(f"{label:24} {slug}")
+        if filter:
+            typer.echo("")
+            for slug, name in api.list_openrouter_models(filter):
+                typer.echo(f"{slug:45} {name}")
+        return
     for name, acts in api.list_gemini_models():
-        if filter in name:
+        if (filter or "gemini") in name:
             typer.echo(f"{name:45} {acts}")
 
 

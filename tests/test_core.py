@@ -13,7 +13,7 @@ class FakeBackend:
     def describe(self, messages):
         return "The Dom tower."
 
-    def image(self, prompt, quality, size):
+    def image(self, prompt, quality, size, model=None):
         self.image_calls += 1
         return Generated(image=b"PNG", revised_prompt=f"revised: {prompt}")
 

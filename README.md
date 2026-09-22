@@ -52,21 +52,30 @@ secret *references*; `make run` / `make dry-run` wrap the command in
 shell session: `eval "$(tools/op-env.sh)"`. `make env-check` shows which items
 resolve without printing values.
 
-| Variable | 1Password item (field `paragraphica`) | Used by |
+| Variable | 1Password item / field | Used by |
 |---|---|---|
-| `GEMINI_API_KEY` | `Gemini` | text + image generation |
-| `PARA_MAPBOX_API` | `Mapbox` | geocoding |
-| `PARA_OPENWEATHERMAP_API` | `Openweathermap` | `--weather` |
+| `GEMINI_API_KEY` | `paragraphica` / `Gemini` | `--backend gemini` (default): text + image |
+| `OPENROUTER_API_KEY` | `paragraphica` / `OpenRouter` | `--backend openrouter`: text + image, any of ten image models (#38) |
+| `PARA_MAPBOX_API` | `Mapbox` / `paragraphica` | geocoding |
+| `PARA_OPENWEATHERMAP_API` | `Openweathermap` / `paragraphica` | `--weather` |
 
 **Getting a Gemini key:** sign in with the Labs Google account at
 https://aistudio.google.com/apikey and create a key. Attach it to a Google Cloud
 project with billing enabled; the free tier is rate-limited and image models
-are billed per image. Store it as item `Gemini`, field `paragraphica`, in the
-Labs vault so both `op.env` and the Ansible role find it. Model docs:
-https://ai.google.dev/gemini-api/docs/image-generation
+are billed per image. Store it as field `Gemini` on the `paragraphica` item in
+the Labs vault. Model docs: https://ai.google.dev/gemini-api/docs/image-generation
 
-Override models with `PARA_TEXT_MODEL` / `PARA_IMAGE_MODEL`. A local backend
-(Mac Mini, Ollama + Draw Things) is planned in #8.
+**OpenRouter** (`--backend openrouter`, or `PARA_BACKEND=openrouter` for
+`terra serve`) puts 30+ image models behind one key: create one at
+https://openrouter.ai/keys and store it as field `OpenRouter` on the same item.
+The image model is then a per-picture choice, `--model "flux.2 pro"` on the CLI
+or the dropdown in the gallery; `terra models -b openrouter` lists the ten
+curated ones and `--filter` searches the live catalogue. GPT Image 2 at low
+quality is about 13x cheaper than Gemini Flash; the cost per image is stored in
+`history.jsonl` when OpenRouter reports it.
+
+Override the default models with `PARA_TEXT_MODEL` / `PARA_IMAGE_MODEL`. A
+local backend (Mac Mini, Ollama + Draw Things) is planned in #8.
 
 ## Todo
 1. [DONE] raspberry pi python setup

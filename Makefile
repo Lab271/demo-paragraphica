@@ -46,13 +46,14 @@ ci: lint test ## Full local gate
 LOCATION ?= Schiphol-Rijk
 STYLE ?= photo
 BACKEND ?= gemini
+MODEL ?=  # OpenRouter image model label, e.g. "flux.2 pro" (#38)
 OP ?= op run --env-file=op.env --
 
 env-check: ## Show which 1Password items in op.env resolve (prints no values)
 	tools/op-env.sh --check
 
 run: ## Generate one image into the history store (output/): make run LOCATION="Amsterdam" STYLE="film noir"
-	$(OP) uv run terra generate --location "$(LOCATION)" --style "$(STYLE)" --backend "$(BACKEND)"
+	$(OP) uv run terra generate --location "$(LOCATION)" --style "$(STYLE)" --backend "$(BACKEND)" $(if $(strip $(MODEL)),--model "$(strip $(MODEL))")
 
 dry-run: ## Description + prompt only, no image call
 	$(OP) uv run terra generate --location "$(LOCATION)" --style "$(STYLE)" --backend "$(BACKEND)" --dry-run

@@ -12,14 +12,16 @@ CTX = Context(address="Utrecht, Netherlands", time_of_day="morning")
 class FakeBackend:
     text_model = "t"
     image_model = "i"
+    last_model = None
 
     def describe(self, messages):
         if messages[0]["content"] == service.ctxmod.GEOCODE_SYSTEM:
             return '{"name": null}'  # the geocoder fallback declines: unknown places stay 404
         return "The Dom tower."
 
-    def image(self, prompt, quality, size):
-        return Generated(image=b"JPG", revised_prompt="note", mime_type="image/jpeg")
+    def image(self, prompt, quality, size, model=None):
+        FakeBackend.last_model = model
+        return Generated(image=b"JPG", revised_prompt="note", mime_type="image/jpeg", cost=0.005)
 
 
 UTRECHT = [
@@ -116,3 +118,28 @@ def test_caption_flag_reaches_the_prompt(client):
     assert r.status_code == 200, r.text
     assert "lettered into the picture" in r.json()["prompt"]
     assert r.json()["caption"] is True
+
+
+@pytest.fixture
+def openrouter_client(monkeypatch, tmp_path):
+    monkeypatch.setattr(backend, "make_backend", lambda name: FakeBackend())
+    monkeypatch.setattr(core, "build_context", lambda *a, **k: CTX)
+    return TestClient(service.create_app(Store(tmp_path), backend_name="openrouter"))
+
+
+def test_models_endpoint_only_for_openrouter(client, openrouter_client):
+    assert client.get("/models").json() == {}
+    assert openrouter_client.get("/models").json()["flux.2 pro"] == "black-forest-labs/flux.2-pro"
+
+
+def test_image_model_label_resolves_to_slug_and_is_stored(openrouter_client):
+    r = openrouter_client.post("/generate", json={"lat": 52.09, "lon": 5.12, "image_model": "flux.2 pro"})
+    assert r.status_code == 200, r.text
+    assert FakeBackend.last_model == "black-forest-labs/flux.2-pro"
+    assert r.json()["image_model"] == "black-forest-labs/flux.2-pro"
+    assert r.json()["cost"] == 0.005
+
+
+def test_unknown_image_model_is_422(client, openrouter_client):
+    assert openrouter_client.post("/generate", json={"lat": 1, "lon": 1, "image_model": "dall-e 3"}).status_code == 422
+    assert client.post("/generate", json={"lat": 1, "lon": 1, "image_model": "flux.2 pro"}).status_code == 422

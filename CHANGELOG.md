@@ -2,6 +2,19 @@
 
 All notable changes to Terra Virtualis (demo-paragraphica). Format: [Keep a Changelog](https://keepachangelog.com/), versions follow SemVer.
 
+## [0.9.0] - 2026-09-22
+
+OpenRouter backend with a per-picture image model (#38).
+
+### Added
+- `--backend openrouter` / `PARA_BACKEND=openrouter`: one key in front of 30+ image models via OpenRouter's Image API; 5xx/429 go through the existing retry path (#38).
+- Image model as a request field: `--model` on the CLI, `image_model` on `POST /generate`, `GET /models`, and a dropdown in the gallery form. Ten curated models from the 2026-09-22 live test, GPT Image 2.5 Flare the default; the model label shows in the card path and `terra history` (#38).
+- `cost` per image on the history record when the provider reports it; shown in the card summary and after `terra generate` (#38).
+- `terra models -b openrouter` lists the curated models and `--filter` searches the live catalogue; `make run MODEL="flux.2 pro"` (#38).
+
+### Changed
+- `op.env`: model keys move to the project item `paragraphica` in the Labs vault, one field per vendor (`Gemini`, `OpenRouter`) (#38).
+
 ## [0.8.0] - 2026-09-13
 
 Slideshow (#36); legacy Pi role and Streamlit UI removed.

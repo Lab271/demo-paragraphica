@@ -1,8 +1,10 @@
 """Model backends. A backend is the only thing in the pipeline that talks to a
 model; everything upstream is strings and dataclasses.
 
-Select with PARA_BACKEND (only "gemini" today; "local" arrives in #8). Model ids can be
-overridden with PARA_TEXT_MODEL / PARA_IMAGE_MODEL."""
+Select with PARA_BACKEND: "gemini" (direct) or "openrouter" (one key in front of 30+
+image models, #38); "local" arrives in #8. Model ids can be overridden with
+PARA_TEXT_MODEL / PARA_IMAGE_MODEL; with openrouter the image model is also a
+per-request choice from IMAGE_MODELS."""
 
 import os
 import re
@@ -70,7 +72,24 @@ DEFAULT_MODELS = {
     # "gemini-flash-latest" alias timed out under load and 3.5/3.8 flash spend a small
     # token budget on thinking and return no text (probed 2026-09-11; `terra models`).
     "gemini": ("gemini-3.1-flash-lite", "gemini-3.1-flash-image"),
+    "openrouter": ("google/gemini-3.1-flash-lite", "openai/gpt-image-2.5-flare"),
 }
+
+# OpenRouter image models, label -> slug, in dial order. All ten from the live
+# film-noir Westerkerk test of 2026-09-22 (#38): best value first, then by look.
+IMAGE_MODELS = {
+    "gpt image 2.5 flare": "openai/gpt-image-2.5-flare",
+    "gpt image 2": "openai/gpt-image-2",
+    "flux.2 pro": "black-forest-labs/flux.2-pro",
+    "seedream 4.5": "bytedance-seed/seedream-4.5",
+    "gemini 3.1 flash image": "google/gemini-3.1-flash-image",
+    "flux.2 klein 4b": "black-forest-labs/flux.2-klein-4b",
+    "mai image 2.6 flash": "microsoft/mai-image-2.6-flash",
+    "qwen image 3": "qwen/qwen-image-3",
+    "grok imagine image 2.0": "x-ai/grok-imagine-image-2.0",
+    "recraft v4.1": "recraft/recraft-v4.1",
+}
+MODEL_LABELS = {slug: label for label, slug in IMAGE_MODELS.items()}
 
 
 @dataclass(frozen=True)
@@ -78,12 +97,15 @@ class Generated:
     image: bytes
     revised_prompt: str | None = None
     mime_type: str = "image/png"
+    cost: float | None = None  # USD, when the provider reports it
 
 
 class Backend(Protocol):
     def describe(self, messages: list[dict]) -> str: ...
 
-    def image(self, prompt: str, quality: str, size: str) -> Generated: ...
+    def image(self, prompt: str, quality: str, size: str, model: str | None = None) -> Generated:
+        """`model` is a slug from IMAGE_MODELS; None means the backend's own default."""
+        ...
 
 
 def _model(env: str, default: str) -> str:
@@ -98,12 +120,26 @@ class GeminiBackend:
     def describe(self, messages: list[dict]) -> str:
         return with_retry(lambda: api.call_gemini_text(self.text_model, messages))
 
-    def image(self, prompt: str, quality: str, size: str) -> Generated:
+    def image(self, prompt: str, quality: str, size: str, model: str | None = None) -> Generated:
         text, data, mime = with_retry(lambda: api.call_gemini_image(prompt, self.image_model, quality, size))
         return Generated(image=data, revised_prompt=text, mime_type=mime)
 
 
-BACKENDS: dict[str, type] = {"gemini": GeminiBackend}
+@dataclass
+class OpenRouterBackend:
+    text_model: str = field(default_factory=lambda: _model("PARA_TEXT_MODEL", DEFAULT_MODELS["openrouter"][0]))
+    image_model: str = field(default_factory=lambda: _model("PARA_IMAGE_MODEL", DEFAULT_MODELS["openrouter"][1]))
+
+    def describe(self, messages: list[dict]) -> str:
+        return with_retry(lambda: api.call_openrouter_text(self.text_model, messages))
+
+    def image(self, prompt: str, quality: str, size: str, model: str | None = None) -> Generated:
+        slug = model or self.image_model
+        data, mime, cost = with_retry(lambda: api.call_openrouter_image(prompt, slug, quality, size))
+        return Generated(image=data, mime_type=mime, cost=cost)
+
+
+BACKENDS: dict[str, type] = {"gemini": GeminiBackend, "openrouter": OpenRouterBackend}
 
 
 def make_backend(name: str = DEFAULT_BACKEND) -> Backend:
