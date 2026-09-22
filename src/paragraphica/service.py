@@ -20,6 +20,7 @@ from paragraphica.context import TIMES_OF_DAY
 from paragraphica.store import Store
 
 DEFAULT_LATLON = (52.274972, 4.750813)  # Schuberg Philis, Schiphol-Rijk
+STATIC = Path(__file__).parent / "static"  # ships in the wheel: hatchling packages the whole directory
 
 
 class GenerateRequest(BaseModel):
@@ -147,6 +148,13 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
     @app.get("/", response_class=HTMLResponse)
     def index() -> str:
         return gallery.render(store.records(), image_base="/images/", controls=True)
+
+    @app.get("/static/{name}")
+    def static(name: str) -> FileResponse:
+        path = STATIC / Path(name).name  # basename only, no traversal
+        if not path.is_file():
+            raise HTTPException(404, "no such file")
+        return FileResponse(path)
 
     @app.get("/about.json")
     def about_json() -> dict:

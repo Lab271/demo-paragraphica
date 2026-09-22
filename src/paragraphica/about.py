@@ -70,6 +70,9 @@ ABOUT_CSS = """
 .about { max-width: 52rem; padding: 1.5rem; }
 .about h2 { margin: 2rem 0 .6rem; font-size: 21px; }
 .about p { margin: .5rem 0; max-width: 40rem; }
+.about figure { margin: 1.2rem 0 0; }
+.about figure img { display: block; width: 100%; border-radius: 12px 12px 12px 0; border: 1px solid var(--c-border); background: var(--c-ink); }
+.about figcaption { margin-top: .5rem; color: var(--c-muted); font-family: var(--mono); font-size: 12.5px; letter-spacing: .06em; }
 .about a { color: var(--c-tq); text-decoration: none; }
 .about a:hover { text-decoration: underline; }
 .about table { border-collapse: collapse; width: 100%; font-family: var(--mono); font-size: 12.5px; letter-spacing: .04em; }
@@ -123,6 +126,11 @@ Bjørn Karmann.</p>
 <p>The camera is a thin client: a Raspberry Pi with a GPS fix and a screen talks to this
 service, which does the geocoding and the model calls. The models run in the cloud today and
 on a Mac Mini in the lab tomorrow.</p>
+<figure>
+<img src="/static/paragraphica-exploded.jpg" width="1536" height="1024"
+     alt="Exploded view of the Paragraphica camera: front shell, star-nosed sensor, three dials for radius, seed and guidance, main housing with trigger, Raspberry Pi 4, GPS module, lithium battery, touchscreen, back shell">
+<figcaption>the camera, taken apart \\ front shell \\ star-nosed sensor \\ radius, seed, guidance \\ raspberry pi 4 \\ gps \\ battery \\ touchscreen \\ imagined by the camera's own engine, gpt image 2.5 flare, 2026-09-22</figcaption>
+</figure>
 
 <h2>Who</h2>
 <p>Main developer: <b>{escape(d["maintainer"])}</b> \\ {escape(d["organisation"])} \\
