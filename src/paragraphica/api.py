@@ -3,6 +3,7 @@ against the network; the recorded responses in tests/*.json are the contract."""
 
 import base64
 import os
+from urllib.parse import quote
 
 import requests
 
@@ -27,7 +28,7 @@ def call_mapbox_forward(query: str, limit: int = 3) -> list[dict]:
     Callers judge them (context.pick_mapbox_hit): with an unknown name Mapbox happily
     returns a street called 'Amsterdam' on another continent (#29)."""
     api_url = "https://api.mapbox.com/search/geocode/v6/forward?q={}&limit={}&access_token={}"
-    response = requests.get(api_url.format(requests.utils.quote(query), limit, _mapbox_token()), timeout=TIMEOUT)
+    response = requests.get(api_url.format(quote(query), limit, _mapbox_token()), timeout=TIMEOUT)
     return response.json().get("features", [])
 
 
@@ -106,7 +107,11 @@ def call_gemini_image(prompt: str, model: str, quality: str, size: str) -> tuple
         ),
     )
     text, image, mime = None, None, "image/png"
-    for part in res.candidates[0].content.parts:
+    parts = (res.candidates or [None])[0]
+    parts = (parts.content.parts if parts and parts.content else None) or []
+    if not parts:  # safety filter or an empty candidate: no parts at all
+        raise RuntimeError(f"Gemini returned no content for model {model!r}: {res.prompt_feedback!r}")
+    for part in parts:
         if part.inline_data is not None and image is None:
             image = part.inline_data.data
             mime = part.inline_data.mime_type or mime
