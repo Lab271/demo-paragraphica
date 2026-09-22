@@ -100,3 +100,25 @@ def test_wall_polls_and_shows_qr_only_when_served(client, tmp_path):
 def test_nickname_too_long_is_422(client):
     assert client.post("/shoot", json={"lat": 1, "lon": 1, "nickname": "x" * 25}).status_code == 422
     assert client.post("/generate", json={"lat": 1, "lon": 1, "source": "robot"}).status_code == 422
+
+
+def test_shoot_url_swaps_loopback_for_the_lan_ip(monkeypatch):
+    monkeypatch.delenv("PARA_PUBLIC_URL", raising=False)
+    monkeypatch.setattr(service, "lan_ip", lambda: "192.168.1.23")
+    assert service.shoot_url("http://localhost:8471/") == "http://192.168.1.23:8471/shoot"
+    assert service.shoot_url("http://127.0.0.1/") == "http://192.168.1.23/shoot"
+    assert service.shoot_url("http://macmini.local:8471/") == "http://macmini.local:8471/shoot"
+    monkeypatch.setattr(service, "lan_ip", lambda: None)
+    assert service.shoot_url("http://localhost:8471/") == "http://localhost:8471/shoot"
+    monkeypatch.setenv("PARA_PUBLIC_URL", "https://terra.lab271.io/")
+    assert service.shoot_url("http://localhost:8471/") == "https://terra.lab271.io/shoot"
+
+
+def test_qr_and_healthz_carry_the_lan_shoot_url(monkeypatch, tmp_path):
+    monkeypatch.delenv("PARA_PUBLIC_URL", raising=False)
+    monkeypatch.setattr(service, "lan_ip", lambda: "10.0.0.5")
+    local = TestClient(service.create_app(Store(tmp_path)), base_url="http://localhost:8471")
+    assert local.get("/healthz").json()["shoot_url"] == "http://10.0.0.5:8471/shoot"
+    assert "10.0.0.5" in local.get("/qr.svg").headers.get("content-type", "") or local.get("/qr.svg").status_code == 200
+    lan = TestClient(service.create_app(Store(tmp_path)), base_url="http://macmini.local:8471")
+    assert lan.get("/healthz").json()["shoot_url"] == "http://macmini.local:8471/shoot"

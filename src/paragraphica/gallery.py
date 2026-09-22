@@ -258,7 +258,7 @@ async function refresh() {
 setInterval(refresh, 10000);
 // The shoot button (top right) shows the QR big enough to scan from across the room.
 const qrbig = document.getElementById('qrbig');
-qrbig.querySelector('.url').textContent = location.origin + '/shoot';
+fetch('/healthz').then(r => r.json()).then(h => { qrbig.querySelector('.url').textContent = h.shoot_url; }).catch(() => {});
 document.getElementById('qrbtn').addEventListener('click', ev => { ev.preventDefault(); qrbig.classList.add('open'); });
 qrbig.addEventListener('click', () => qrbig.classList.remove('open'));
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape') qrbig.classList.remove('open'); });
