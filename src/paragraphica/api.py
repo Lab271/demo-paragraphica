@@ -1,6 +1,7 @@
 """Thin wrappers around the external HTTP APIs. Nothing in here is unit-tested
 against the network; the recorded responses in tests/*.json are the contract."""
 
+import base64
 import os
 
 import requests
@@ -124,4 +125,75 @@ def list_gemini_models() -> list[tuple[str, str]]:
     for m in genai.Client().models.list():
         acts = ",".join(a for a in (m.supported_actions or []) if "generate" in a.lower())
         out.append(((m.name or "").removeprefix("models/"), acts))
+    return sorted(out)
+
+
+# --- OpenRouter: one key, one request shape, 30+ image models (#38) ---
+
+OPENROUTER_URL = "https://openrouter.ai/api/v1"
+OPENROUTER_TIMEOUT = 150  # FLUX.2 pro takes ~20 s, Qwen image ~85 s (live test 2026-09-22)
+
+
+class OpenRouterError(RuntimeError):
+    """Non-2xx from OpenRouter; `status_code` lets backend.with_retry handle 5xx/429."""
+
+    def __init__(self, message: str, status_code: int) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+
+
+def _openrouter_post(path: str, body: dict) -> dict:
+    headers = {
+        "Authorization": f"Bearer {os.environ['OPENROUTER_API_KEY']}",
+        "HTTP-Referer": "https://github.com/Lab271/demo-paragraphica",
+        "X-Title": "Terra Virtualis",
+    }
+    r = requests.post(f"{OPENROUTER_URL}{path}", json=body, headers=headers, timeout=OPENROUTER_TIMEOUT)
+    if not r.ok:
+        raise OpenRouterError(f"OpenRouter {r.status_code}: {r.text[:200]}", r.status_code)
+    return r.json()
+
+
+def _openrouter_quality(model: str, quality: str) -> dict:
+    """Vendors name the quality dial differently; FLUX and Recraft take none."""
+    vendor = model.split("/")[0]
+    if vendor == "openai":
+        return {"quality": quality}
+    if vendor in ("google", "qwen"):
+        return {"resolution": GEMINI_IMAGE_SIZE.get(quality, "1K")}
+    if vendor == "bytedance-seed":
+        return {"resolution": "2K" if quality != "high" else "4K"}  # Seedream rejects 1K
+    return {}
+
+
+def call_openrouter_image(prompt: str, model: str, quality: str, size: str) -> tuple[bytes, str, float | None]:
+    """POST /images. Returns (image bytes, mime type, cost in USD when reported)."""
+    aspect = GEMINI_ASPECT.get(size, "1:1")
+    if model.startswith("recraft/"):  # Recraft has no 3:2; 4:3 is the nearest it takes
+        aspect = {"3:2": "4:3", "2:3": "3:4"}.get(aspect, aspect)
+    body = {"model": model, "prompt": prompt, "aspect_ratio": aspect}
+    body.update(_openrouter_quality(model, quality))
+    res = _openrouter_post("/images", body)
+    data = (res.get("data") or [{}])[0]
+    if not data.get("b64_json"):
+        raise RuntimeError(f"OpenRouter returned no image for model {model!r}: {str(res)[:200]}")
+    cost = (res.get("usage") or {}).get("cost")
+    return base64.b64decode(data["b64_json"]), data.get("media_type") or "image/png", cost
+
+
+def call_openrouter_text(model: str, messages: list[dict], max_tokens: int = 400, temperature: float = 0.1) -> str:
+    res = _openrouter_post(
+        "/chat/completions",
+        {"model": model, "messages": messages, "max_tokens": max_tokens, "temperature": temperature},
+    )
+    return res["choices"][0]["message"]["content"] or ""
+
+
+def list_openrouter_models(filter: str = "") -> list[tuple[str, str]]:
+    """(slug, name) for OpenRouter models whose slug contains `filter`, image models first."""
+    res = requests.get(f"{OPENROUTER_URL}/models", timeout=TIMEOUT).json()
+    out = []
+    for m in res.get("data", []):
+        if filter in m["id"]:
+            out.append((m["id"], m.get("name", "")))
     return sorted(out)

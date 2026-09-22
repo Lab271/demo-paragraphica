@@ -70,6 +70,14 @@ def test_weather_shown_and_time_controls():
     assert 'name=time_of_day data-src="/times"' in html and "name=include_weather" in html
 
 
+def test_model_dropdown_and_label_on_card():
+    html = render([rec(image_model="black-forest-labs/flux.2-pro", cost=0.045)], controls=True)
+    assert 'name=image_model data-src="/models"' in html
+    assert "landmark \\ morning \\ flux.2 pro" in html or "flux.2 pro</span>" in html
+    assert "$0.045" in html
+    assert "gemini-3.1-flash-image" not in render([rec()]).split("<summary>")[0].split("<div class=meta>")[1]
+
+
 def test_cards_carry_coordinates_and_viewer_loads_leaflet_lazily():
     html = render([rec(lat=52.378, lon=4.9)])
     assert 'data-lat="52.378" data-lon="4.9"' in html

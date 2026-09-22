@@ -38,6 +38,7 @@ class Record:
     duration_s: float
     wander_m: float = 0.0
     caption: bool = False
+    cost: float | None = None  # USD per image, when the backend reports it (#38)
     extra: dict = field(default_factory=dict)
 
 
@@ -104,6 +105,7 @@ class Store:
             duration_s=round(result.duration_s, 1),
             wander_m=req.wander_m,
             caption=req.caption,
+            cost=result.cost,
         )
         with self.history_path.open("a", encoding="utf-8") as f:
             data = asdict(rec)

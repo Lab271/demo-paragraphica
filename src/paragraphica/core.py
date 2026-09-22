@@ -22,6 +22,7 @@ class Request:
     time_of_day: str | None = None  # override the clock, e.g. 'dark night' for a day/night pair
     quality: str = "medium"
     size: str = "1024x1024"
+    image_model: str | None = None  # IMAGE_MODELS slug; None = backend default (#38)
     wander_m: float = 0.0  # move to a random point within this radius before geocoding (#22)
     seed: int | None = None  # makes wandering reproducible
     caption: bool = False  # letter the place name into the picture (#25)
@@ -36,6 +37,7 @@ class Result:
     revised_prompt: str | None = None
     mime_type: str = "image/png"
     duration_s: float = 0.0  # model calls only, not the geo lookups
+    cost: float | None = None  # USD, when the backend reports it
 
 
 def _prepare(req: Request, backend: Backend, context: Context | None) -> tuple[Context, str, str, float]:
@@ -53,7 +55,7 @@ def _prepare(req: Request, backend: Backend, context: Context | None) -> tuple[C
 
 
 def _image(req: Request, backend: Backend, ctx: Context, description: str, prompt: str, t0: float) -> Result:
-    gen = backend.image(prompt, req.quality, req.size)
+    gen = backend.image(prompt, req.quality, req.size, req.image_model)
     return Result(
         context=ctx,
         description=description,
@@ -62,6 +64,7 @@ def _image(req: Request, backend: Backend, ctx: Context, description: str, promp
         revised_prompt=gen.revised_prompt,
         mime_type=gen.mime_type,
         duration_s=time.perf_counter() - t0,
+        cost=gen.cost,
     )
 
 

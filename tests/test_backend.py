@@ -110,3 +110,103 @@ def test_gemini_client_has_timeout_and_no_sdk_retries():
 
     opts = types.HttpOptions(timeout=api.GEMINI_TIMEOUT_MS, retry_options=types.HttpRetryOptions(attempts=1))
     assert opts.timeout == 60_000 and opts.retry_options.attempts == 1 and c is None
+
+
+# --- OpenRouter (#38) ---
+
+
+class _Resp:
+    def __init__(self, status, payload=None, text=""):
+        self.status_code, self.ok, self._payload, self.text = status, status < 400, payload, text
+
+    def json(self):
+        return self._payload
+
+
+def test_openrouter_image_call_shape(monkeypatch):
+    seen = {}
+
+    def post(url, json, headers, timeout):
+        seen.update(url=url, body=json, auth=headers["Authorization"], timeout=timeout)
+        return _Resp(200, {"data": [{"b64_json": "SlBH", "media_type": "image/jpeg"}], "usage": {"cost": 0.045}})
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-test")
+    monkeypatch.setattr(api.requests, "post", post)
+    data, mime, cost = api.call_openrouter_image("p", "black-forest-labs/flux.2-pro", "high", "1536x1024")
+    assert (data, mime, cost) == (b"JPG", "image/jpeg", 0.045)
+    assert seen["url"].endswith("/api/v1/images") and seen["auth"] == "Bearer sk-or-test"
+    assert seen["body"] == {"model": "black-forest-labs/flux.2-pro", "prompt": "p", "aspect_ratio": "3:2"}
+    assert seen["timeout"] >= 120
+
+
+@pytest.mark.parametrize(
+    "model,quality,extra",
+    [
+        ("openai/gpt-image-2", "low", {"quality": "low"}),
+        ("google/gemini-3.1-flash-image", "high", {"resolution": "2K"}),
+        ("google/gemini-3.1-flash-image", "low", {"resolution": "1K"}),
+        ("bytedance-seed/seedream-4.5", "low", {"resolution": "2K"}),
+        ("black-forest-labs/flux.2-pro", "high", {}),
+    ],
+)
+def test_openrouter_quality_param_per_vendor(model, quality, extra):
+    assert api._openrouter_quality(model, quality) == extra
+
+
+def test_openrouter_recraft_has_no_3_2(monkeypatch):
+    seen = {}
+    monkeypatch.setenv("OPENROUTER_API_KEY", "k")
+    monkeypatch.setattr(
+        api.requests,
+        "post",
+        lambda url, json, headers, timeout: seen.update(json) or _Resp(200, {"data": [{"b64_json": "SlBH"}]}),
+    )
+    api.call_openrouter_image("p", "recraft/recraft-v4.1", "medium", "1536x1024")
+    assert seen["aspect_ratio"] == "4:3"
+
+
+def test_openrouter_error_carries_status_and_retries(monkeypatch):
+    calls = []
+
+    def post(url, json, headers, timeout):
+        calls.append(1)
+        if len(calls) == 1:
+            return _Resp(503, text="upstream busy")
+        return _Resp(200, {"data": [{"b64_json": "UE5H"}]})
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "k")
+    monkeypatch.setattr(api.requests, "post", post)
+    monkeypatch.setattr(backend.time, "sleep", lambda s: None)
+    gen = backend.OpenRouterBackend().image("p", "medium", "1024x1024", "openai/gpt-image-2")
+    assert gen == backend.Generated(image=b"PNG", mime_type="image/png", cost=None) and len(calls) == 2
+
+
+def test_openrouter_4xx_propagates_untouched(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "k")
+    monkeypatch.setattr(api.requests, "post", lambda *a, **kw: _Resp(402, text="insufficient credits"))
+    with pytest.raises(api.OpenRouterError, match="402") as e:
+        backend.OpenRouterBackend().image("p", "medium", "1024x1024")
+    assert e.value.status_code == 402
+
+
+def test_openrouter_backend_defaults_and_model_choice(monkeypatch):
+    monkeypatch.delenv("PARA_TEXT_MODEL", raising=False)
+    monkeypatch.delenv("PARA_IMAGE_MODEL", raising=False)
+    seen = {}
+    monkeypatch.setattr(
+        api, "call_openrouter_image", lambda p, m, q, s: seen.update(model=m) or (b"X", "image/png", 0.005)
+    )
+    monkeypatch.setattr(api, "call_openrouter_text", lambda m, msgs: "desc")
+    b = backend.make_backend("openrouter")
+    assert isinstance(b, backend.OpenRouterBackend)
+    assert b.describe([{"role": "user", "content": "x"}]) == "desc"
+    b.image("p", "low", "1024x1024")
+    assert seen["model"] == backend.DEFAULT_MODELS["openrouter"][1]
+    b.image("p", "low", "1024x1024", "qwen/qwen-image-3")
+    assert seen["model"] == "qwen/qwen-image-3"
+
+
+def test_image_models_are_ten_unique_slugs():
+    assert len(backend.IMAGE_MODELS) == 10
+    assert len(set(backend.IMAGE_MODELS.values())) == 10
+    assert all("/" in slug for slug in backend.IMAGE_MODELS.values())

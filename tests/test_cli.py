@@ -10,12 +10,14 @@ CTX = Context(address="Utrecht, Netherlands")
 
 class FakeBackend:
     image_calls = 0
+    last_model = None
 
     def describe(self, messages):
         return "The Dom tower."
 
-    def image(self, prompt, quality, size):
+    def image(self, prompt, quality, size, model=None):
         FakeBackend.image_calls += 1
+        FakeBackend.last_model = model
         return Generated(image=b"JPG", mime_type="image/jpeg")
 
 
@@ -68,6 +70,17 @@ def test_unknown_style_is_rejected():
     assert "unknown style" in result.output
 
 
+def test_model_option_resolves_label_and_rejects_unknown(monkeypatch, tmp_path):
+    _offline(monkeypatch)
+    args = ["generate", "--lat", "1", "--lon", "1", "--out-dir", str(tmp_path)]
+    result = runner.invoke(cli.app, [*args, "--model", "seedream 4.5"])
+    assert result.exit_code == 0, result.output
+    assert FakeBackend.last_model == "bytedance-seed/seedream-4.5"
+    assert '"image_model": "bytedance-seed/seedream-4.5"' in (tmp_path / "history.jsonl").read_text()
+    result = runner.invoke(cli.app, [*args, "--model", "dall-e 3"])
+    assert result.exit_code != 0 and "unknown model" in result.output
+
+
 def test_options_lists_vocabulary():
     result = runner.invoke(cli.app, ["options"])
     assert result.exit_code == 0
@@ -83,6 +96,15 @@ def test_models_lists_and_filters(monkeypatch):
     result = runner.invoke(cli.app, ["models"])
     assert result.exit_code == 0
     assert "gemini-3.1-flash-image" in result.output and "veo-3" not in result.output
+
+
+def test_models_openrouter_lists_curated_then_catalogue(monkeypatch):
+    monkeypatch.setattr(cli.api, "list_openrouter_models", lambda f: [("qwen/qwen-image-3", "Qwen Image 3")])
+    result = runner.invoke(cli.app, ["models", "--backend", "openrouter"])
+    assert result.exit_code == 0
+    assert "black-forest-labs/flux.2-pro" in result.output and "Qwen Image 3" not in result.output
+    result = runner.invoke(cli.app, ["models", "--backend", "openrouter", "--filter", "qwen"])
+    assert "Qwen Image 3" in result.output
 
 
 def test_variants_write_n_images(monkeypatch, tmp_path):

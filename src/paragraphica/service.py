@@ -30,6 +30,7 @@ class GenerateRequest(BaseModel):
     context: str = prompts.DEFAULT_SUBJECT
     position: str = prompts.DEFAULT_FRAMING
     quality: str = "medium"
+    image_model: str | None = Field(None, description="Image model label; one of GET /models (OpenRouter only)")
     include_time: bool = True
     include_weather: bool = False
     time_of_day: str | None = Field(None, description="Override the clock; one of GET /times")
@@ -63,6 +64,11 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
     def positions() -> dict[str, str]:
         return prompts.POSITIONS
 
+    @app.get("/models")
+    def models() -> dict[str, str]:
+        """Image models selectable per request (label -> slug); empty unless the backend is openrouter."""
+        return backends.IMAGE_MODELS if backend_name == "openrouter" else {}
+
     @app.get("/times")
     def times() -> list[str]:
         return list(TIMES_OF_DAY)
@@ -79,6 +85,8 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
         _check("position", req.position, prompts.POSITIONS)
         if req.time_of_day:
             _check("time_of_day", req.time_of_day, dict.fromkeys(TIMES_OF_DAY))
+        if req.image_model:
+            _check("image_model", req.image_model, models())
         model = backends.make_backend(backend_name)
         location = req.location or ""
         if req.lat is None or req.lon is None:
@@ -103,6 +111,7 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
             include_time=req.include_time,
             include_weather=req.include_weather,
             quality=req.quality,
+            image_model=backends.IMAGE_MODELS[req.image_model] if req.image_model else None,
             time_of_day=req.time_of_day or None,
             wander_m=req.wander_m,
             seed=req.seed,
@@ -118,7 +127,7 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
                 res,
                 backend=backend_name,
                 text_model=getattr(model, "text_model", ""),
-                image_model=getattr(model, "image_model", ""),
+                image_model=core_req.image_model or getattr(model, "image_model", ""),
                 location=location,
             )
             for res in results
