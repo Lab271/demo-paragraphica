@@ -237,8 +237,8 @@ form.addEventListener('submit', async ev => {
   ticker = setInterval(() => { status.textContent = `imagining ${body.location}… ${Math.round((Date.now()-t0)/1000)}s`; }, 250);
   try {
     const r = await fetch('/generate', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(body)});
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.detail || r.statusText);
+    const data = await r.json().catch(() => ({}));  // a crash page is HTML, not JSON
+    if (!r.ok) throw new Error(data.detail || `${r.status} ${r.statusText}`);
     location.reload();
   } catch (e) {
     clearInterval(ticker); btn.disabled = false;

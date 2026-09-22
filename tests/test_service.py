@@ -143,3 +143,15 @@ def test_image_model_label_resolves_to_slug_and_is_stored(openrouter_client):
 def test_unknown_image_model_is_422(client, openrouter_client):
     assert openrouter_client.post("/generate", json={"lat": 1, "lon": 1, "image_model": "dall-e 3"}).status_code == 422
     assert client.post("/generate", json={"lat": 1, "lon": 1, "image_model": "flux.2 pro"}).status_code == 422
+
+
+def test_provider_refusal_is_502_json(monkeypatch, tmp_path):
+    class Refusing(FakeBackend):
+        def image(self, prompt, quality, size, model=None):
+            raise RuntimeError("Alibaba: blocked this request through content moderation.")
+
+    monkeypatch.setattr(backend, "make_backend", lambda name: Refusing())
+    monkeypatch.setattr(core, "build_context", lambda *a, **k: CTX)
+    c = TestClient(service.create_app(Store(tmp_path)))
+    r = c.post("/generate", json={"lat": 52.37, "lon": 4.9})
+    assert r.status_code == 502 and "content moderation" in r.json()["detail"]
