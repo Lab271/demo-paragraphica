@@ -150,7 +150,13 @@ def _openrouter_post(path: str, body: dict) -> dict:
     }
     r = requests.post(f"{OPENROUTER_URL}{path}", json=body, headers=headers, timeout=OPENROUTER_TIMEOUT)
     if not r.ok:
-        raise OpenRouterError(f"OpenRouter {r.status_code}: {r.text[:200]}", r.status_code)
+        try:  # {"error": {"message": "...", "metadata": {"provider_name": "Alibaba"}}}
+            err = r.json()["error"]
+            who = (err.get("metadata") or {}).get("provider_name") or "OpenRouter"
+            detail = f"{who}: {err['message']}"
+        except (ValueError, KeyError, TypeError):
+            detail = f"OpenRouter {r.status_code}: {r.text[:200]}"
+        raise OpenRouterError(detail, r.status_code)
     return r.json()
 
 

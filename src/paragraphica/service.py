@@ -121,6 +121,8 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
             results = core.generate_variants(core_req, model, req.variants)
         except backends.TransientError as e:
             raise HTTPException(503, f"model temporarily unavailable: {e}") from None
+        except RuntimeError as e:  # provider refused: content moderation, bad parameter, no image
+            raise HTTPException(502, str(e)[:300]) from None
         recs = [
             store.save(
                 core_req,

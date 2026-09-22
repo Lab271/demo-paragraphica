@@ -189,6 +189,17 @@ def test_openrouter_4xx_propagates_untouched(monkeypatch):
     assert e.value.status_code == 402
 
 
+def test_openrouter_moderation_message_names_the_provider(monkeypatch):
+    payload = {
+        "error": {"message": "blocked by content moderation", "code": 400, "metadata": {"provider_name": "Alibaba"}}
+    }
+    monkeypatch.setenv("OPENROUTER_API_KEY", "k")
+    monkeypatch.setattr(api.requests, "post", lambda *a, **kw: _Resp(400, payload, text="{...}"))
+    with pytest.raises(api.OpenRouterError, match="Alibaba: blocked by content moderation") as e:
+        api.call_openrouter_image("p", "qwen/qwen-image-3", "medium", "1024x1024")
+    assert e.value.status_code == 400
+
+
 def test_openrouter_backend_defaults_and_model_choice(monkeypatch):
     monkeypatch.delenv("PARA_TEXT_MODEL", raising=False)
     monkeypatch.delenv("PARA_IMAGE_MODEL", raising=False)

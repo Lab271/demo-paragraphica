@@ -2,6 +2,11 @@
 
 All notable changes to Terra Virtualis (demo-paragraphica). Format: [Keep a Changelog](https://keepachangelog.com/), versions follow SemVer.
 
+## [0.9.1] - 2026-09-22
+
+### Fixed
+- A provider refusal (e.g. Alibaba's content moderation on `qwen image 3`, or any 4xx from OpenRouter) surfaced as a bare "Internal Server Error" page that the gallery could not parse. `POST /generate` now answers 502 with the provider's message, the OpenRouter error names the provider, and the gallery shows the status instead of a JSON parse error (#38).
+
 ## [0.9.0] - 2026-09-22
 
 OpenRouter backend with a per-picture image model (#38).
