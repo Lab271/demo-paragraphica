@@ -210,6 +210,7 @@ CONTROLS = """
   <select name=quality><option>low</option><option selected>medium</option><option>high</option></select>
   <select name=image_model data-src="/models" data-first="default model" title="Image model"></select>
   <select name=time_of_day data-src="/times" data-first="now (local time)"></select>
+  <select name=era data-src="/eras" data-first="today" title="Era"></select>
   <label><input type=checkbox name=include_weather> weather</label>
   <label><input type=checkbox name=caption> caption</label>
   <button type=submit>generate</button>
@@ -237,6 +238,7 @@ form.addEventListener('submit', async ev => {
   body.caption = form.caption.checked;
   if (!body.time_of_day) delete body.time_of_day;
   if (!body.image_model) delete body.image_model;
+  if (!body.era) delete body.era;
   btn.disabled = true; status.className = ''; const t0 = Date.now();
   ticker = setInterval(() => { status.textContent = `imagining ${body.location}… ${Math.round((Date.now()-t0)/1000)}s`; }, 250);
   try {
@@ -259,6 +261,7 @@ def _card(r: Record, image_base: str) -> str:
         for x in (
             r.position if r.position not in ("normal", "eye level") else "",
             r.context,
+            r.era,
             r.time_of_day,
             r.weather,
             "captioned" if r.caption else "",

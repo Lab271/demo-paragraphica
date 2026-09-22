@@ -47,16 +47,17 @@ LOCATION ?= Schiphol-Rijk
 STYLE ?= photo
 BACKEND ?= gemini
 MODEL ?=  # OpenRouter image model label, e.g. "flux.2 pro" (#38)
+ERA ?=  # the age dial, e.g. 1650 or "ice age" (#47)
 OP ?= op run --env-file=op.env --
 
 env-check: ## Show which 1Password items in op.env resolve (prints no values)
 	tools/op-env.sh --check
 
 run: ## Generate one image into the history store (output/): make run LOCATION="Amsterdam" STYLE="film noir"
-	$(OP) uv run terra generate --location "$(LOCATION)" --style "$(STYLE)" --backend "$(BACKEND)" $(if $(strip $(MODEL)),--model "$(strip $(MODEL))")
+	$(OP) uv run terra generate --location "$(LOCATION)" --style "$(STYLE)" --backend "$(BACKEND)" $(if $(strip $(MODEL)),--model "$(strip $(MODEL))") $(if $(strip $(ERA)),--era "$(strip $(ERA))")
 
 dry-run: ## Description + prompt only, no image call
-	$(OP) uv run terra generate --location "$(LOCATION)" --style "$(STYLE)" --backend "$(BACKEND)" --dry-run
+	$(OP) uv run terra generate --location "$(LOCATION)" --style "$(STYLE)" --backend "$(BACKEND)" $(if $(strip $(ERA)),--era "$(strip $(ERA))") --dry-run
 
 history: ## Recent generations from output/history.jsonl
 	uv run terra history

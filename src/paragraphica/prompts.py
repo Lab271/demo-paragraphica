@@ -1,11 +1,12 @@
 """Prompt vocabulary and the one template that assembles the image prompt.
 No network, no state: everything here is testable with plain strings.
 
-Three axes, named for the camera's dials (#13):
+Four axes, named for the camera's dials (#13, #47):
 
-  Look     — medium and era of the picture      (was "style")
+  Look     — medium and rendering of the picture (was "style")
   Framing  — where the camera stands            (was "position")
   Subject  — what the text model describes      (was "context")
+  Era      — when: the same spot in another age; unset means today
 
 Every fragment is one sentence of concrete visual cues, written for Gemini,
 which follows long grounded prompts and needs no meta text ("Provide this
@@ -82,6 +83,67 @@ SUBJECTS = {
     "three highlights": "Name three things worth seeing within walking distance of {} in one sentence, no addresses.",
 }
 
+# The age dial (#47). Each era has a line for the scout (what to describe) and a line
+# for the painter (period cues the image model needs). Past eras ask "as it looked",
+# future ones "as it will plausibly look", so the text model speculates instead of
+# refusing. Dict order is dial order: past to future, then the odd one out.
+ERAS = {
+    "1650": (
+        "as it looked in 1650, at the height of the Dutch Golden Age",
+        (
+            "Set in 1650: timber and brick gables, cobbles and mud, horse carts, sailing barges, "
+            "people in dark wool, white collars and wide hats, candle and daylight only."
+        ),
+    ),
+    "1780": (
+        "as it looked in 1780",
+        "Set in 1780: powdered wigs and tricorn hats, carriages, oil lamps, plaster facades, hand-painted signs.",
+    ),
+    "1900": (
+        "as it looked in 1900, the belle époque",
+        (
+            "Set in 1900: horse trams and the first electric ones, gas lamps, top hats and long skirts, "
+            "iron and glass, sepia-warm daylight."
+        ),
+    ),
+    "1944": (
+        "as it looked in the winter of 1944",
+        (
+            "Set in the winter of 1944: bare trees, few people in worn coats, bicycles without tyres, "
+            "shuttered shops, grey light, no cars."
+        ),
+    ),
+    "1969": (
+        "as it looked in 1969",
+        "Set in 1969: round-headlight cars, flared trousers and long hair, neon signs, Kodachrome colours.",
+    ),
+    "1985": (
+        "as it looked in 1985",
+        "Set in 1985: boxy hatchbacks, big glasses and shoulder pads, payphones, slightly faded print-film colours.",
+    ),
+    "2050": (
+        "as it will plausibly look in 2050",
+        (
+            "Set in 2050: mature green facades, quiet electric vehicles, solar glass, "
+            "the old buildings kept and the new ones wooden."
+        ),
+    ),
+    "2200": (
+        "as it will plausibly look in 2200",
+        (
+            "Set in 2200: the historic core preserved under a taller, greener city, water everywhere, "
+            "airships or drones in the sky, unfamiliar but calm technology."
+        ),
+    ),
+    "ice age": (
+        "as the same spot looked during the last ice age, twenty thousand years ago",
+        (
+            "Set in the last ice age: tundra and ice under a huge sky, no buildings, mammoths or reindeer "
+            "in the distance, low cold sun."
+        ),
+    ),
+}
+
 # Compatibility aliases (code and history written before #13).
 STYLES = LOOKS
 POSITIONS = FRAMINGS
@@ -97,9 +159,15 @@ DEFAULT_FRAMING = "eye level"
 DEFAULT_SUBJECT = "landmark"
 
 
-def describe_messages(subject: str, ctx: Context, system_prompt: str = SYSTEM_PROMPT) -> list[dict]:
-    """Chat messages asking the text model to describe the scene."""
-    parts = [SUBJECTS[subject].format(ctx.address)]
+def describe_messages(
+    subject: str, ctx: Context, system_prompt: str = SYSTEM_PROMPT, era: str | None = None
+) -> list[dict]:
+    """Chat messages asking the text model to describe the scene; with an era, the scene
+    as it was or will be then (#47)."""
+    place = f"{ctx.address}, {ERAS[era][0]}" if era else ctx.address
+    parts = [SUBJECTS[subject].format(place)]
+    if era:
+        parts.append("Describe that time, not today: buildings, people, vehicles, materials, light.")
     if ctx.time_of_day:
         parts.append(f"It is {ctx.time_of_day}.")
     if ctx.weather:
@@ -117,9 +185,10 @@ def build_prompt(
     framing: str = DEFAULT_FRAMING,
     main_prompt: str = MAIN_PROMPT,
     caption: bool = False,
+    era: str | None = None,
 ) -> str:
-    """The image prompt: opener, description, framing, look, text control. Empty fragments are dropped."""
+    """The image prompt: opener, description, era, framing, look, text control. Empty fragments are dropped."""
     opener = main_prompt.format(address=address) if "{address}" in main_prompt else f"{main_prompt} {address}."
     text = CAPTION.format(address=address.split(",")[0]) if caption else NO_TEXT
-    parts = [opener, description.strip(), FRAMINGS[framing], LOOKS[look], text]
+    parts = [opener, description.strip(), ERAS[era][1] if era else "", FRAMINGS[framing], LOOKS[look], text]
     return " ".join(p for p in parts if p)

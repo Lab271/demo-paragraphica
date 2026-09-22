@@ -103,3 +103,9 @@ def test_slideshow_controls_and_url_start():
 def test_about_link_points_at_the_service_or_the_repo():
     assert 'href="/about"' in render([rec()], controls=True)
     assert 'href="https://github.com/Lab271/demo-paragraphica"' in render([rec()])
+
+
+def test_era_dropdown_and_path_line():
+    html = render([rec(era="1650")], controls=True)
+    assert 'name=era data-src="/eras" data-first="today"' in html
+    assert "landmark \\ 1650 \\ afternoon" in html

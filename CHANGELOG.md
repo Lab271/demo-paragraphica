@@ -2,6 +2,14 @@
 
 All notable changes to Terra Virtualis (demo-paragraphica). Format: [Keep a Changelog](https://keepachangelog.com/), versions follow SemVer.
 
+## [0.12.0] - 2026-09-22
+
+The age dial (#47).
+
+### Added
+- `--era` / `era` / `GET /eras` / a dropdown in the gallery form: the same spot in another age. Nine eras from 1650 to 2200 plus the ice age; each carries a line for the scout ("as it looked in", or "as it will plausibly look in" for the future) and period cues for the painter. Stored on the record, shown in the card path line, listed by `terra options`; `make run ERA=1650` (#47).
+- Note: some providers refuse wartime prompts; `1944` stays in the dial and a refusal shows as the provider's message (0.9.1).
+
 ## [0.11.0] - 2026-09-22
 
 ### Added
