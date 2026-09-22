@@ -42,6 +42,10 @@ article img { width:100%; aspect-ratio:1/1; object-fit:cover; display:block; bac
 .meta { padding:.8rem 1.1rem 0; display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; }
 .style { display:inline-flex; align-items:center; height:26px; padding:0 12px; border-radius:999px 999px 999px 0; background:var(--c-panel); color:var(--c-tq); font-family:var(--mono); font-size:11px; letter-spacing:.08em; }
 .when, .how { color:var(--c-muted); }
+.who { display:inline-flex; align-items:center; height:26px; padding:0 12px; border-radius:999px 999px 999px 0; border:1px solid var(--c-tq); color:var(--c-tq); font-family:var(--mono); font-size:11px; letter-spacing:.08em; }
+#qr { position:fixed; right:1.2rem; bottom:1.2rem; z-index:20; display:none; align-items:center; gap:.7rem; padding:.5rem .7rem .5rem .5rem; background:rgba(255,255,255,.96); color:var(--c-ink); border-radius:12px 12px 12px 0; font-family:var(--mono); font-size:11px; letter-spacing:.06em; line-height:1.3; }
+#qr img { width:96px; height:96px; display:block; }
+#view.full.playing ~ #qr { display:flex; }
 h2 { margin:.5rem 1.1rem .2rem; font-size:16px; font-weight:900; letter-spacing:-.03em; line-height:1.2; }
 details { margin:0 1.1rem 1rem; }
 summary { cursor:pointer; color:var(--c-muted); }
@@ -218,6 +222,34 @@ CONTROLS = """
 </form>
 """
 
+QR = """
+<div id=qr><img src="/qr.svg" alt="QR code to /shoot"><span>scan \\ pick a spot<br>\\ shoot \\ it lands here</span></div>
+"""
+
+# The wall notices new pictures (#48): poll the image count, and when it grows fetch the
+# page and prepend the new cards, so the card template stays in one place (server side).
+WALL_JS = """
+let known = parseInt(document.querySelector('header .count').textContent, 10) || 0;
+function bindCards(scope) {
+  scope.querySelectorAll('article a').forEach(a => a.addEventListener('click', ev => { ev.preventDefault(); show(cards().indexOf(a.closest('article'))); }));
+}
+async function refresh() {
+  try {
+    const h = await (await fetch('/healthz', {cache: 'no-store'})).json();
+    if (h.images <= known) return;
+    const html = await (await fetch('/', {cache: 'no-store'})).text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const fresh = [...doc.querySelectorAll('main article')].slice(0, h.images - known).reverse();
+    const main = document.querySelector('main');
+    for (const a of fresh) { const node = document.importNode(a, true); main.prepend(node); bindCards(node); }
+    known = h.images;
+    document.querySelector('header .count').textContent = `${known} images`;
+    if (timer) show(0);
+  } catch (e) { /* offline or restarting: try again next tick */ }
+}
+setInterval(refresh, 10000);
+"""
+
 CONTROLS_JS = """
 const form = document.getElementById('gen');
 const status = document.getElementById('status');
@@ -270,12 +302,13 @@ def _card(r: Record, image_base: str) -> str:
         if x
     )
     cost = f" \\ ${r.cost:.3f}" if r.cost is not None else ""
+    who = f"<span class=who>{escape(r.nickname)}</span>" if r.nickname else ""
     revised = f"<p class=prompt><b>model note</b> {escape(r.revised_prompt)}</p>" if r.revised_prompt else ""
     src = escape(image_base + r.image)
     return f"""
 <article data-style="{escape(r.style)}" data-lat="{r.lat}" data-lon="{r.lon}">
   <a href="{src}"><img src="{src}" alt="{escape(r.address)} in {escape(r.style)} style" loading="lazy"></a>
-  <div class=meta><span class=style>{escape(r.style)}</span><span class=when>{escape(when)}</span><span class=how>{escape(how)}</span></div>
+  <div class=meta><span class=style>{escape(r.style)}</span><span class=when>{escape(when)}</span>{who}<span class=how>{escape(how)}</span></div>
   <h2>{escape(r.address)}</h2>
   <details>
     <summary>description \\ prompt \\ {escape(r.image_model)} \\ {r.duration_s:g}s{cost}</summary>
@@ -309,7 +342,8 @@ def render(records: list[Record], title: str = "Terra Virtualis", image_base: st
 {CONTROLS if controls else ""}
 <main>{cards}</main>
 {VIEWER}
+{QR if controls else ""}
 <footer>terra virtualis \\ a lensless camera that imagines the view from where it stands \\ after bjørn karmann's paragraphica \\ LAB271 \\ schuberg philis</footer>
-<script>{JS}{VIEWER_JS}{CONTROLS_JS if controls else ""}</script>
+<script>{JS}{VIEWER_JS}{CONTROLS_JS + WALL_JS if controls else ""}</script>
 </body></html>
 """

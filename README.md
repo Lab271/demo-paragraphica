@@ -25,7 +25,9 @@ Then, for the developer loop:
 ## Service
 
 `make serve` runs the HTTP service on port 8471 with the keys injected by 1Password.
-The gallery is at `/`, `/about` tells what it is, who makes it and which engines
+The gallery is at `/`, `/shoot` is the phone page (scan the QR the slideshow shows in
+Full mode, drop the pin where you would rather be, press the shutter; the picture lands
+on the wall within seconds, with your name; three a minute per phone), `/about` tells what it is, who makes it and which engines
 and image models it runs on (built from the code, `/about.json` for machines,
 `terra about` in the terminal), and the API is what the Pi client (#10) talks to:
 

@@ -40,6 +40,8 @@ class Record:
     caption: bool = False
     cost: float | None = None  # USD per image, when the backend reports it (#38)
     era: str = ""  # the age dial, "" = today (#47)
+    nickname: str = ""  # who took it (#48)
+    source: str = ""  # cli | wall | phone (#48)
     extra: dict = field(default_factory=dict)
 
 
@@ -108,6 +110,8 @@ class Store:
             caption=req.caption,
             cost=result.cost,
             era=req.era or "",
+            nickname=req.nickname,
+            source=req.source,
         )
         with self.history_path.open("a", encoding="utf-8") as f:
             data = asdict(rec)

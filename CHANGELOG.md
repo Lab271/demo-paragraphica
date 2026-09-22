@@ -2,6 +2,15 @@
 
 All notable changes to Terra Virtualis (demo-paragraphica). Format: [Keep a Changelog](https://keepachangelog.com/), versions follow SemVer.
 
+## [0.13.0] - 2026-09-22
+
+Shoot from the phone, see it on the wall (#48).
+
+### Added
+- `/shoot`: a phone page with a full-screen map and a draggable pin, a search box (`GET /geocode`), the dials including era and model, a nickname, one shutter. `POST /shoot` runs the same pipeline as the wall, one picture, rate limited to 3 a minute per client address (#48).
+- The wall polls `/healthz` every 10 s and prepends new cards without a reload; a playing slideshow jumps to the new picture. In Full mode a QR to `/shoot` (`GET /qr.svg`, `segno`) sits in the corner (#48).
+- `nickname` and `source` (`wall` / `phone` / `cli`) on the request and record; the nickname shows as a pill on the card (#48).
+
 ## [0.12.0] - 2026-09-22
 
 The age dial (#47).

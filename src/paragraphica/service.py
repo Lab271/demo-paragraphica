@@ -5,15 +5,17 @@
 Thin by design: validation + one call into core.generate + Store.save. API keys
 live in this process's environment and never appear in a response."""
 
+import time
+from collections import defaultdict, deque
 from dataclasses import asdict
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from pydantic import BaseModel, Field
 
-from paragraphica import __version__, about, core, gallery, prompts
+from paragraphica import __version__, about, core, gallery, prompts, shoot
 from paragraphica import backend as backends
 from paragraphica import context as ctxmod
 from paragraphica.context import TIMES_OF_DAY
@@ -21,6 +23,7 @@ from paragraphica.store import Store
 
 DEFAULT_LATLON = (52.274972, 4.750813)  # Schuberg Philis, Schiphol-Rijk
 STATIC = Path(__file__).parent / "static"  # ships in the wheel: hatchling packages the whole directory
+SHOTS_PER_MINUTE = 3  # per client address on /shoot: a room full of phones must not run up the bill (#48)
 
 
 class GenerateRequest(BaseModel):
@@ -40,11 +43,32 @@ class GenerateRequest(BaseModel):
     seed: int | None = None
     variants: int = Field(1, ge=1, le=4, description="Images for the same prompt")
     caption: bool = Field(False, description="Letter the place name into the picture")
+    nickname: str = Field("", max_length=24, description="Who took it; shown on the card")
+    source: str = Field("wall", pattern="^(wall|phone|cli)$")
+
+
+class RateLimit:
+    """Sliding window per key, in memory. Good enough for one room; budgets are #49."""
+
+    def __init__(self, per_minute: int = SHOTS_PER_MINUTE) -> None:
+        self.per_minute = per_minute
+        self.hits: dict[str, deque[float]] = defaultdict(deque)
+
+    def allow(self, key: str, now: float | None = None) -> bool:
+        now = time.monotonic() if now is None else now
+        q = self.hits[key]
+        while q and now - q[0] > 60:
+            q.popleft()
+        if len(q) >= self.per_minute:
+            return False
+        q.append(now)
+        return True
 
 
 def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_BACKEND) -> FastAPI:
     store = store or Store()
     app = FastAPI(title="Terra Virtualis", version=__version__)
+    shots = RateLimit()
 
     def _check(name: str, value: str, options: dict) -> None:
         if value not in options:
@@ -84,8 +108,7 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
         recs = store.records()[-last:]
         return [_public(r) for r in reversed(recs)]
 
-    @app.post("/generate")
-    def generate(req: GenerateRequest) -> dict:
+    def _generate(req: GenerateRequest) -> dict:
         _check("style", req.style, prompts.STYLES)
         _check("context", req.context, prompts.CONTEXTS)
         _check("position", req.position, prompts.POSITIONS)
@@ -125,6 +148,8 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
             wander_m=req.wander_m,
             seed=req.seed,
             caption=req.caption,
+            nickname=req.nickname.strip(),
+            source=req.source,
         )
         try:
             results = core.generate_variants(core_req, model, req.variants)
@@ -145,6 +170,46 @@ def create_app(store: Store | None = None, backend_name: str = backends.DEFAULT_
         ]
         (store.root / "index.html").write_text(gallery.render(store.records()), encoding="utf-8")
         return {**_public(recs[0]), "records": [_public(r) for r in recs]}
+
+    @app.post("/generate")
+    def generate(req: GenerateRequest) -> dict:
+        return _generate(req)
+
+    @app.post("/shoot")
+    def shoot_post(req: GenerateRequest, request: Request) -> dict:
+        """The phone's shutter (#48): the same pipeline, one picture, rate limited per client."""
+        client = request.client.host if request.client else "?"
+        if not shots.allow(client):
+            raise HTTPException(429, f"easy: {SHOTS_PER_MINUTE} pictures a minute per phone; try again shortly")
+        req = req.model_copy(update={"variants": 1, "source": "phone"})
+        return _generate(req)
+
+    @app.get("/geocode")
+    def geocode(q: Annotated[str, Query(min_length=2, max_length=120)]) -> dict:
+        """Forward geocode for the phone's search box: Mapbox first, the text model as fallback."""
+        try:
+            found = ctxmod.geocode(q, backends.make_backend(backend_name).describe)
+        except ctxmod.LocationNotFound:
+            raise HTTPException(404, f"location not found: {q!r}") from None
+        except backends.TransientError as e:
+            raise HTTPException(503, f"model temporarily unavailable: {e}") from None
+        return {"lat": found.lat, "lon": found.lon, "name": found.name}
+
+    @app.get("/shoot", response_class=HTMLResponse)
+    def shoot_page() -> str:
+        return shoot.render(has_models=backend_name == "openrouter")
+
+    @app.get("/qr.svg")
+    def qr(request: Request) -> Response:
+        """QR to /shoot on this host; the wall shows it in the slideshow corner."""
+        import io
+
+        import segno
+
+        url = str(request.base_url).rstrip("/") + "/shoot"
+        buf = io.BytesIO()  # a full SVG document (with xmlns), so <img src=/qr.svg> can load it
+        segno.make(url, error="m").save(buf, kind="svg", scale=4, dark="#020C17", light="#FFFFFF", border=2)
+        return Response(buf.getvalue(), media_type="image/svg+xml")
 
     @app.get("/images/{name}")
     def image(name: str) -> FileResponse:
