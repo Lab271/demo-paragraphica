@@ -46,6 +46,13 @@ article img { width:100%; aspect-ratio:1/1; object-fit:cover; display:block; bac
 #qr { position:fixed; right:1.2rem; bottom:1.2rem; z-index:20; display:none; align-items:center; gap:.7rem; padding:.5rem .7rem .5rem .5rem; background:rgba(255,255,255,.96); color:var(--c-ink); border-radius:12px 12px 12px 0; font-family:var(--mono); font-size:11px; letter-spacing:.06em; line-height:1.3; }
 #qr img { width:96px; height:96px; display:block; }
 #view.full.playing ~ #qr { display:flex; }
+header a.nav + a.nav { margin-left:-3rem; }
+#qrbig { position:fixed; inset:0; z-index:30; display:none; align-items:center; justify-content:center; flex-direction:column; gap:1.2rem; background:rgba(2,12,23,.96); cursor:pointer; }
+#qrbig.open { display:flex; }
+#qrbig .card { background:#fff; padding:1.4rem; border-radius:16px 16px 16px 0; }
+#qrbig img { width:min(70vh, 70vw); height:auto; display:block; }
+#qrbig .url { color:var(--c-tq); font-family:var(--mono); font-size:14px; letter-spacing:.08em; }
+#qrbig .hint { color:var(--c-muted); font-family:var(--mono); font-size:12.5px; letter-spacing:.06em; }
 h2 { margin:.5rem 1.1rem .2rem; font-size:16px; font-weight:900; letter-spacing:-.03em; line-height:1.2; }
 details { margin:0 1.1rem 1rem; }
 summary { cursor:pointer; color:var(--c-muted); }
@@ -224,6 +231,7 @@ CONTROLS = """
 
 QR = """
 <div id=qr><img src="/qr.svg" alt="QR code to /shoot"><span>scan \\ pick a spot<br>\\ shoot \\ it lands here</span></div>
+<div id=qrbig role=dialog aria-label="Scan to shoot from your phone"><div class=card><img src="/qr.svg" alt="QR code to /shoot"></div><span class=url></span><span class=hint>scan with your phone \\ pick a spot \\ shoot \\ it lands here \\ tap anywhere to close</span></div>
 """
 
 # The wall notices new pictures (#48): poll the image count, and when it grows fetch the
@@ -248,6 +256,12 @@ async function refresh() {
   } catch (e) { /* offline or restarting: try again next tick */ }
 }
 setInterval(refresh, 10000);
+// The shoot button (top right) shows the QR big enough to scan from across the room.
+const qrbig = document.getElementById('qrbig');
+qrbig.querySelector('.url').textContent = location.origin + '/shoot';
+document.getElementById('qrbtn').addEventListener('click', ev => { ev.preventDefault(); qrbig.classList.add('open'); });
+qrbig.addEventListener('click', () => qrbig.classList.remove('open'));
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') qrbig.classList.remove('open'); });
 """
 
 CONTROLS_JS = """
@@ -330,7 +344,11 @@ def render(records: list[Record], title: str = "Terra Virtualis", image_base: st
     options = "".join(f'<option value="{escape(s)}">{escape(s)}</option>' for s in styles)
     cards = "".join(_card(r, image_base) for r in recs)
     # The served page has /about; the static file points at the README instead (#42).
-    about = '<a class=nav href="/about">\\ about</a>' if controls else f'<a class=nav href="{REPO}">\\ about</a>'
+    about = (
+        '<a class=nav href="/shoot" id=qrbtn title="Scan to shoot from your phone">\\ shoot</a><a class=nav href="/about">\\ about</a>'
+        if controls
+        else f'<a class=nav href="{REPO}">\\ about</a>'
+    )
     return f"""<!doctype html>
 <html lang=en><head><meta charset=utf-8><meta name=viewport content="width=device-width, initial-scale=1">
 <title>{escape(title)}</title><style>{CSS}</style></head>
