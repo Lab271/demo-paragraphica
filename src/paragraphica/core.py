@@ -27,6 +27,8 @@ class Request:
     wander_m: float = 0.0  # move to a random point within this radius before geocoding (#22)
     seed: int | None = None  # makes wandering reproducible
     caption: bool = False  # letter the place name into the picture (#25)
+    nickname: str = ""  # who took it, shown on the card (#48)
+    source: str = "cli"  # cli | wall | phone (#48)
 
 
 @dataclass(frozen=True)

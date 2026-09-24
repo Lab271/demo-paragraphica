@@ -109,3 +109,8 @@ def test_era_dropdown_and_path_line():
     html = render([rec(era="1650")], controls=True)
     assert 'name=era data-src="/eras" data-first="today"' in html
     assert "landmark \\ 1650 \\ afternoon" in html
+
+
+def test_nickname_pill_only_when_set():
+    assert "<span class=who>" not in render([rec()])
+    assert "<span class=who>Ilja</span>" in render([rec(nickname="Ilja")])

@@ -42,6 +42,17 @@ article img { width:100%; aspect-ratio:1/1; object-fit:cover; display:block; bac
 .meta { padding:.8rem 1.1rem 0; display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; }
 .style { display:inline-flex; align-items:center; height:26px; padding:0 12px; border-radius:999px 999px 999px 0; background:var(--c-panel); color:var(--c-tq); font-family:var(--mono); font-size:11px; letter-spacing:.08em; }
 .when, .how { color:var(--c-muted); }
+.who { display:inline-flex; align-items:center; height:26px; padding:0 12px; border-radius:999px 999px 999px 0; border:1px solid var(--c-tq); color:var(--c-tq); font-family:var(--mono); font-size:11px; letter-spacing:.08em; }
+#qr { position:fixed; right:1.2rem; bottom:1.2rem; z-index:20; display:none; align-items:center; gap:.7rem; padding:.5rem .7rem .5rem .5rem; background:rgba(255,255,255,.96); color:var(--c-ink); border-radius:12px 12px 12px 0; font-family:var(--mono); font-size:11px; letter-spacing:.06em; line-height:1.3; }
+#qr img { width:96px; height:96px; display:block; }
+#view.full.playing ~ #qr { display:flex; }
+header a.nav + a.nav { margin-left:-3rem; }
+#qrbig { position:fixed; inset:0; z-index:30; display:none; align-items:center; justify-content:center; flex-direction:column; gap:1.2rem; background:rgba(2,12,23,.96); cursor:pointer; }
+#qrbig.open { display:flex; }
+#qrbig .card { background:#fff; padding:1.4rem; border-radius:16px 16px 16px 0; }
+#qrbig img { width:min(70vh, 70vw); height:auto; display:block; }
+#qrbig .url { color:var(--c-tq); font-family:var(--mono); font-size:14px; letter-spacing:.08em; }
+#qrbig .hint { color:var(--c-muted); font-family:var(--mono); font-size:12.5px; letter-spacing:.06em; }
 h2 { margin:.5rem 1.1rem .2rem; font-size:16px; font-weight:900; letter-spacing:-.03em; line-height:1.2; }
 details { margin:0 1.1rem 1rem; }
 summary { cursor:pointer; color:var(--c-muted); }
@@ -218,6 +229,41 @@ CONTROLS = """
 </form>
 """
 
+QR = """
+<div id=qr><img src="/qr.svg" alt="QR code to /shoot"><span>scan \\ pick a spot<br>\\ shoot \\ it lands here</span></div>
+<div id=qrbig role=dialog aria-label="Scan to shoot from your phone"><div class=card><img src="/qr.svg" alt="QR code to /shoot"></div><span class=url></span><span class=hint>scan with your phone \\ pick a spot \\ shoot \\ it lands here \\ tap anywhere to close</span></div>
+"""
+
+# The wall notices new pictures (#48): poll the image count, and when it grows fetch the
+# page and prepend the new cards, so the card template stays in one place (server side).
+WALL_JS = """
+let known = parseInt(document.querySelector('header .count').textContent, 10) || 0;
+function bindCards(scope) {
+  scope.querySelectorAll('article a').forEach(a => a.addEventListener('click', ev => { ev.preventDefault(); show(cards().indexOf(a.closest('article'))); }));
+}
+async function refresh() {
+  try {
+    const h = await (await fetch('/healthz', {cache: 'no-store'})).json();
+    if (h.images <= known) return;
+    const html = await (await fetch('/', {cache: 'no-store'})).text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const fresh = [...doc.querySelectorAll('main article')].slice(0, h.images - known).reverse();
+    const main = document.querySelector('main');
+    for (const a of fresh) { const node = document.importNode(a, true); main.prepend(node); bindCards(node); }
+    known = h.images;
+    document.querySelector('header .count').textContent = `${known} images`;
+    if (timer) show(0);
+  } catch (e) { /* offline or restarting: try again next tick */ }
+}
+setInterval(refresh, 10000);
+// The shoot button (top right) shows the QR big enough to scan from across the room.
+const qrbig = document.getElementById('qrbig');
+fetch('/healthz').then(r => r.json()).then(h => { qrbig.querySelector('.url').textContent = h.shoot_url; }).catch(() => {});
+document.getElementById('qrbtn').addEventListener('click', ev => { ev.preventDefault(); qrbig.classList.add('open'); });
+qrbig.addEventListener('click', () => qrbig.classList.remove('open'));
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') qrbig.classList.remove('open'); });
+"""
+
 CONTROLS_JS = """
 const form = document.getElementById('gen');
 const status = document.getElementById('status');
@@ -270,12 +316,13 @@ def _card(r: Record, image_base: str) -> str:
         if x
     )
     cost = f" \\ ${r.cost:.3f}" if r.cost is not None else ""
+    who = f"<span class=who>{escape(r.nickname)}</span>" if r.nickname else ""
     revised = f"<p class=prompt><b>model note</b> {escape(r.revised_prompt)}</p>" if r.revised_prompt else ""
     src = escape(image_base + r.image)
     return f"""
 <article data-style="{escape(r.style)}" data-lat="{r.lat}" data-lon="{r.lon}">
   <a href="{src}"><img src="{src}" alt="{escape(r.address)} in {escape(r.style)} style" loading="lazy"></a>
-  <div class=meta><span class=style>{escape(r.style)}</span><span class=when>{escape(when)}</span><span class=how>{escape(how)}</span></div>
+  <div class=meta><span class=style>{escape(r.style)}</span><span class=when>{escape(when)}</span>{who}<span class=how>{escape(how)}</span></div>
   <h2>{escape(r.address)}</h2>
   <details>
     <summary>description \\ prompt \\ {escape(r.image_model)} \\ {r.duration_s:g}s{cost}</summary>
@@ -297,7 +344,11 @@ def render(records: list[Record], title: str = "Terra Virtualis", image_base: st
     options = "".join(f'<option value="{escape(s)}">{escape(s)}</option>' for s in styles)
     cards = "".join(_card(r, image_base) for r in recs)
     # The served page has /about; the static file points at the README instead (#42).
-    about = '<a class=nav href="/about">\\ about</a>' if controls else f'<a class=nav href="{REPO}">\\ about</a>'
+    about = (
+        '<a class=nav href="/shoot" id=qrbtn title="Scan to shoot from your phone">\\ shoot</a><a class=nav href="/about">\\ about</a>'
+        if controls
+        else f'<a class=nav href="{REPO}">\\ about</a>'
+    )
     return f"""<!doctype html>
 <html lang=en><head><meta charset=utf-8><meta name=viewport content="width=device-width, initial-scale=1">
 <title>{escape(title)}</title><style>{CSS}</style></head>
@@ -309,7 +360,8 @@ def render(records: list[Record], title: str = "Terra Virtualis", image_base: st
 {CONTROLS if controls else ""}
 <main>{cards}</main>
 {VIEWER}
+{QR if controls else ""}
 <footer>terra virtualis \\ a lensless camera that imagines the view from where it stands \\ after bjørn karmann's paragraphica \\ LAB271 \\ schuberg philis</footer>
-<script>{JS}{VIEWER_JS}{CONTROLS_JS if controls else ""}</script>
+<script>{JS}{VIEWER_JS}{CONTROLS_JS + WALL_JS if controls else ""}</script>
 </body></html>
 """
